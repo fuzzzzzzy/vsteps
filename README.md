@@ -35,6 +35,23 @@ and redeploys automatically on every push.
    git push -u origin main
    ```
 
+   If that push is rejected with `! [rejected] main -> main (fetch
+   first)`, GitHub already has a commit on the repo — usually because
+   "Add a README" (or `.gitignore`/license) got checked when the repo
+   was created, even by accident. Check `https://github.com/<you>/<repo>`
+   in a browser to see what's there. If it's nothing you need, overwrite
+   it:
+   ```bash
+   git push -u origin main --force
+   ```
+   If there's something you actually want to keep, merge instead:
+   ```bash
+   git pull origin main --allow-unrelated-histories --no-edit
+   git push -u origin main
+   ```
+   (resolve any conflict markers in the affected file first, `git add`
+   it, then `git commit --no-edit` before the push).
+
 ### 2. Connect it to Cloudflare Pages
 
 1. In the Cloudflare dashboard, go to **Workers & Pages → Create → Pages →
@@ -83,6 +100,9 @@ within roughly a minute, with no dashboard steps.
    ```bash
    python3 build_manifest.py
    ```
+   (On Windows, this is usually just `python build_manifest.py` — Windows
+   Python installs typically don't create a `python3` command. Run
+   `python --version` first if you're not sure which one you have.)
    This rewrites `clips.json` from whatever's currently in `clips/`. It
    prints a count of any rows where it couldn't confidently guess the
    agent or surface — open `clips.json` and fix those by hand (it's just
@@ -125,6 +145,7 @@ over HTTP instead:
 cd vsteps-static
 python3 -m http.server 8000
 ```
+(again, `python -m http.server 8000` on most Windows installs.)
 
 Then open `http://localhost:8000` in a browser.
 
