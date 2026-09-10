@@ -12,7 +12,8 @@ index.html          the whole app (HTML + CSS + JS, single file)
 clips.json           the manifest: which audio file belongs to which agent/surface
 clips/                the actual audio files
 build_manifest.py     regenerates clips.json by scanning clips/
-trim_clips.py         cuts a longer recording into individual clips in clips/
+auto_split.py          auto-detects and cuts clips from a recording via silence gaps
+trim_clips.py          cuts a longer recording into individual clips using exact timestamps
 ```
 
 There's no server, database, or upload form — you manage the clip library by
@@ -101,16 +102,39 @@ terms). The safe, standard way fan footstep-trainers handle this is to
 record their own clips rather than distribute Riot's files — you already
 own the right to record and use footage of your own gameplay.
 
-The practical version: go into Valorant's **Practice Range**, spawn or
-select each agent (Peek Frenzy/Range agent select lets you swap freely),
-and walk them over each surface type while recording your screen + audio
-(OBS, Xbox/Windows Game Bar — `Win+G` — or similar). Fifteen or twenty
-minutes of that gives you a source recording covering every agent/surface
-combo.
+### Fast path: `auto_split.py` (recommended for tagging a lot of clips quickly)
 
-Once you have that recording, use **`trim_clips.py`** (included in this
-repo) to cut it into individual clips in bulk instead of doing it one at a
-time in an audio editor:
+The fastest way to build a big library: in the Practice Range, record **one
+agent on one surface per file**, walking a few steps, pausing briefly,
+walking a few more, pausing, and so on, for 30-60+ seconds. Name the
+recording like `jett_metal.mp4` (agent, then surface). Repeat per
+agent/surface combo you want — OBS or Xbox/Windows Game Bar (`Win+G`) both
+work for screen+audio capture.
+
+Then run:
+```bash
+python3 auto_split.py jett_metal.mp4
+```
+No timestamps needed. It finds the quiet gaps between your footstep bursts
+automatically (via `ffmpeg`'s silence detector) and cuts everything between
+them into its own clip, already correctly named and numbered
+(`jett_metal_01.mp3`, `jett_metal_02.mp3`, ...) — agent and surface are
+read straight from the filename, same convention as `build_manifest.py`.
+One 45-second recording with a dozen footstep bursts in it becomes a dozen
+tagged clips in one command. Run it once per recording, then regenerate
+the manifest (next section).
+
+Add `--dry-run` to preview what it would cut before committing to it. If
+it's splitting too aggressively (picking up keyboard/mic noise as separate
+clips) or not aggressively enough (missing quiet gaps), tune `--noise` and
+`--min-silence` — `python3 auto_split.py --help` explains each knob.
+
+### Precise path: `trim_clips.py` (when you need exact control)
+
+For clips you want to hand-place — mixing multiple agents in one
+recording, or a take where the automatic split above doesn't cleanly find
+the gaps — use `trim_clips.py` with timestamps you find yourself by
+scrubbing through the recording in any video player:
 
 1. Make a `cuts.csv` listing each clip you want, one per line:
    ```csv
@@ -119,19 +143,19 @@ time in an audio editor:
    practice_range_01.mp4,1:03.2,1:04.5,Jett,Wood
    practice_range_02.mp4,0:05.0,0:06.3,Sova,Sand
    ```
-   (times are `M:SS.s` or `H:MM:SS.s`; scrub through your recording in any
-   video player to find the timestamps)
+   (times are `M:SS.s` or `H:MM:SS.s`)
 2. Run it:
    ```bash
    python3 trim_clips.py cuts.csv
    ```
-   This calls `ffmpeg` (must be installed and on your PATH — see
-   [ffmpeg.org/download](https://ffmpeg.org/download.html)) to cut each
-   segment straight into `clips/`, already named correctly
-   (`jett_metal_01.mp3`, etc.) so `build_manifest.py` picks them up with no
-   further guessing. Add `--dry-run` first to sanity-check the plan without
-   actually cutting anything.
-3. Regenerate the manifest as usual (next section).
+   This cuts each segment straight into `clips/`, correctly named, so
+   `build_manifest.py` picks them up with no further guessing. Add
+   `--dry-run` first to sanity-check the plan without actually cutting
+   anything.
+
+Both scripts need `ffmpeg` installed and on your PATH — see
+[ffmpeg.org/download](https://ffmpeg.org/download.html) if you don't have
+it yet.
 
 ## Day-to-day: adding new clips
 
