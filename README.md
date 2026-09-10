@@ -41,12 +41,20 @@ and redeploys automatically on every push.
    Connect to Git**, and authorize/select your GitHub repo.
 2. Build settings:
    - **Framework preset:** None
-   - **Build command:** (leave blank)
-   - **Build output directory:** `/` (the repo root — that's where
-     `index.html` lives)
+   - **Build command:** leave empty. If the field won't accept empty,
+     type `exit 0` as a no-op.
+   - **Build output directory:** `.` (a single period, meaning "repo
+     root" — that's where `index.html` lives). Do **not** enter `/` —
+     Cloudflare treats that as a literal subfolder named `/`, which
+     doesn't exist, and the deploy fails with `[ERROR] Could not detect
+     a directory containing static files`.
 3. Click **Save and Deploy**. Cloudflare gives you a working
    `*.pages.dev` URL within a minute or two — the site is now live and
    public at that address.
+
+   If a deploy ever fails with that "could not detect a directory"
+   error, it means this setting got reset or mistyped — recheck it
+   under **Settings → Builds & deployments** and redeploy.
 
 ### 3. Point your domain at it
 
