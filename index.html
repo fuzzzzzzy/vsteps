@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vSteps</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F1F4F2;
+    --surface: #FFFFFF;
+    --surface-2: #E6ECE9;
+    --border: #D2DBD6;
+    --text: #10181A;
+    --text-dim: #56645F;
+    --accent: #0E8A79;
+    --accent-strong: #096459;
+    --accent-contrast: #FFFFFF;
+    --warn: #A8660A;
+    --danger: #B23A48;
+    --danger-bg: #F6DDE0;
+    --success: #1C8A57;
+    --success-bg: #DDF0E4;
+    --shadow: 0 1px 2px rgba(16, 24, 26, 0.06), 0 8px 24px rgba(16, 24, 26, 0.05);
+    --cut: 14px;
+    --cut-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0A0F0F;
+      --surface: #121A1A;
+      --surface-2: #1A2423;
+      --border: #263230;
+      --text: #E9F2EF;
+      --text-dim: #8CA29B;
+      --accent: #4CE7C9;
+      --accent-strong: #7FF0DA;
+      --accent-contrast: #052A24;
+      --warn: #FFC369;
+      --danger: #FF7C88;
+      --danger-bg: #3A1620;
+      --success: #6FE39A;
+      --success-bg: #123322;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0A0F0F;
+    --surface: #121A1A;
+    --surface-2: #1A2423;
+    --border: #263230;
+    --text: #E9F2EF;
+    --text-dim: #8CA29B;
+    --accent: #4CE7C9;
+    --accent-strong: #7FF0DA;
+    --accent-contrast: #052A24;
+    --warn: #FFC369;
+    --danger: #FF7C88;
+    --danger-bg: #3A1620;
+    --success: #6FE39A;
+    --success-bg: #123322;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    padding: 28px 16px 64px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+  h1, h2, h3 { font-family: "Chakra Petch", ui-sans-serif, sans-serif; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .dim { color: var(--text-dim); }
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+
+  /* ---- header ---- */
+  header { display: flex; flex-direction: column; gap: 10px; }
+  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-size: clamp(1.7rem, 1.35rem + 1.6vw, 2.3rem); }
+  header p.tagline { margin: 0; color: var(--text-dim); font-size: 0.95rem; max-width: 46ch; }
+
+  /* ---- shared panel shape ---- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+    padding: 20px;
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+
+  /* ---- waveform / player ---- */
+  .player-panel { display: flex; flex-direction: column; gap: 16px; }
+  .scope {
+    position: relative;
+    height: 120px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+    overflow: hidden;
+  }
+  .scope canvas { width: 100%; height: 100%; display: block; }
+  .scope .scope-label {
+    position: absolute; top: 8px; left: 12px;
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; letter-spacing: 0.1em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+  .scope .scope-status {
+    position: absolute; bottom: 8px; right: 12px;
+    font-family: "IBM Plex Mono", monospace; font-size: 0.7rem; color: var(--accent);
+  }
+
+  .player-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    font-family: "Chakra Petch", sans-serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 11px 20px;
+    cursor: pointer;
+    clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-primary { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+  .btn-ghost { background: transparent; }
+  .btn-sm { padding: 7px 12px; font-size: 0.8rem; }
+
+  .idle-ping { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .idle-ping.playing::before {
+      content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 1px solid var(--accent);
+      animation: ping 1.4s ease-out infinite;
+    }
+  }
+  @keyframes ping { from { transform: scale(0.5); opacity: 0.8; } to { transform: scale(2.6); opacity: 0; } }
+
+  /* ---- mode toggle ---- */
+  .segmented { display: inline-flex; border: 1px solid var(--border); padding: 3px; gap: 3px; background: var(--surface-2); }
+  .segmented button {
+    font-family: "IBM Plex Sans", sans-serif; font-weight: 500; font-size: 0.85rem;
+    background: none; border: none; padding: 7px 14px; color: var(--text-dim); cursor: pointer;
+  }
+  .segmented button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+  /* ---- agent icon badge (an original monogram vSteps draws itself) ---- */
+  .agent-badge {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    border-radius: 50%; color: #fff; font-family: "IBM Plex Mono", monospace;
+    font-weight: 600; letter-spacing: 0; line-height: 1;
+  }
+
+  /* ---- agent filter ---- */
+  .filter-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    font-family: "IBM Plex Sans", sans-serif; font-size: 0.82rem; font-weight: 500;
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--surface-2); color: var(--text-dim); cursor: pointer; user-select: none;
+  }
+  .chip.chip-agent { padding-left: 6px; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+  .link-btn { background: none; border: none; color: var(--accent); font-size: 0.78rem; font-family: "IBM Plex Mono", monospace; cursor: pointer; padding: 0; }
+
+  /* ---- answer area ---- */
+  /* flex (not grid) so a half-empty last row centers instead of hugging the left edge */
+  .mc-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .mc-grid .mc-btn { flex: 0 0 calc((100% - 10px) / 2); max-width: calc((100% - 10px) / 2); }
+  .mc-grid.mc-grid-3 .mc-btn { flex-basis: calc((100% - 20px) / 3); max-width: calc((100% - 20px) / 3); }
+  .mc-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    font-family: "Chakra Petch", sans-serif; font-weight: 600; font-size: 0.85rem;
+    padding: 16px 10px; text-align: center;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+    cursor: pointer;
+  }
+  .mc-btn .agent-badge { width: 42px; height: 42px; font-size: 1rem; }
+  .mc-btn:hover:not(:disabled) { border-color: var(--accent); }
+  .mc-btn.picked { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .mc-btn.correct { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+  .mc-btn.wrong { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+  .mc-btn:disabled { cursor: default; opacity: 0.75; }
+
+  .type-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .type-row input[type="text"] {
+    flex: 1; min-width: 160px; font-family: "IBM Plex Mono", monospace; font-size: 1rem;
+    padding: 12px 14px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  }
+  .type-row select {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.92rem;
+    padding: 12px 14px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  }
+
+  .mini-input {
+    width: 52px; font-family: "IBM Plex Mono", monospace; font-size: 0.82rem;
+    padding: 5px 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+    text-align: center;
+  }
+
+  .feedback {
+    padding: 12px 16px; font-family: "IBM Plex Mono", monospace; font-size: 0.88rem;
+    border: 1px solid var(--border); display: none; align-items: center; gap: 10px;
+  }
+  .feedback.show { display: flex; }
+  .feedback.correct { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+  .feedback.wrong { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+
+  /* ---- stat HUD ---- */
+  .stat-hud { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  .stat-tile { background: var(--surface); padding: 12px 8px; text-align: center; }
+  .stat-tile .v { font-family: "IBM Plex Mono", monospace; font-size: 1.4rem; font-weight: 600; }
+  .stat-tile .k { font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+
+  /* ---- empty / notice states ---- */
+  .notice { padding: 26px 20px; text-align: center; color: var(--text-dim); display: flex; flex-direction: column; gap: 8px; align-items: center; }
+
+  .preview-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 14px; border: 1px solid var(--warn); color: var(--warn);
+    font-family: "IBM Plex Mono", monospace; font-size: 0.8rem;
+  }
+  .preview-banner .link-btn { color: var(--warn); flex: none; }
+  .notice .big { font-size: 2rem; }
+
+  footer { text-align: center; color: var(--text-dim); font-size: 0.76rem; padding-top: 8px; }
+  footer a { color: var(--accent); }
+  footer code { font-family: "IBM Plex Mono", monospace; }
+
+  @media (max-width: 460px) {
+    .stat-hud { grid-template-columns: repeat(3, 1fr); }
+    .mc-grid .mc-btn { flex-basis: 100%; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="header-top">
+      <div>
+        <div class="eyebrow">Audio Recognition Drill</div>
+        <h1>vSteps</h1>
+      </div>
+    </div>
+    <p class="tagline">Play a tagged footstep clip and call the agent by ear — the way you'd have to mid-round.</p>
+  </header>
+
+  <section id="viewPractice">
+
+    <div id="practiceLoading" class="panel notice">
+      <div class="big">👣</div>
+      <div>Loading the clip library…</div>
+    </div>
+
+    <div id="practiceUnavailable" class="panel notice" hidden>
+      <div class="big">👣</div>
+      <div><strong>Couldn't load the clip library.</strong></div>
+      <div class="dim">Make sure <code class="mono">clips.json</code> is sitting next to this page and you're viewing it over http/https rather than a local <code class="mono">file://</code> path — browsers block that fetch from a file path. Run a static server (e.g. <code class="mono">python3 -m http.server</code>) if you're testing locally.</div>
+      <button class="btn" id="previewBtn" style="margin-top:8px;">Preview the guessing screen</button>
+    </div>
+
+    <div id="practiceEmpty" class="panel notice" hidden>
+      <div class="big">👣</div>
+      <div><strong>No clips in the range yet.</strong></div>
+      <div class="dim" id="practiceEmptyHint">The clip library is empty — add tagged audio files to the <code class="mono">clips/</code> folder and list them in <code class="mono">clips.json</code>.</div>
+      <button class="btn" id="previewBtn2" style="margin-top:8px;">Preview the guessing screen</button>
+    </div>
+
+    <div id="practiceMain" hidden style="display:flex; flex-direction:column; gap:18px;">
+
+      <div class="preview-banner" id="previewBanner" hidden>
+        <span>⚠ Sample preview, no real audio — this clip is <span id="previewAnswer" class="mono" style="font-weight:600;"></span></span>
+        <button type="button" class="link-btn" id="exitPreviewBtn">Exit preview</button>
+      </div>
+
+      <div class="panel player-panel">
+        <div class="scope">
+          <span class="scope-label">Signal</span>
+          <span class="scope-status mono" id="scopeStatus">idle</span>
+          <canvas id="scopeCanvas"></canvas>
+        </div>
+        <div class="player-controls">
+          <button class="btn btn-primary" id="playBtn">▶ Play Clip</button>
+          <button class="btn btn-ghost" id="replayBtn" disabled>↻ Replay</button>
+          <span class="idle-ping" id="idlePing" aria-hidden="true"></span>
+          <span class="dim mono" id="clipCounter" style="margin-left:auto; font-size:0.78rem;"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 style="font-size:1rem;">Answer mode</h2>
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
+            <button type="button" class="chip" id="requireSurfaceToggle" aria-pressed="false">+ Surface</button>
+            <div class="segmented" id="modeToggle">
+              <button aria-pressed="true" data-mode="mc">Multiple choice</button>
+              <button aria-pressed="false" data-mode="type">Type answer</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="mcArea">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div class="dim" id="mcAgentLabel" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;" hidden>Agent</div>
+            <label class="dim mono" style="display:flex; align-items:center; gap:6px; font-size:0.76rem; margin-left:auto;">
+              Options
+              <input type="number" id="optionCountInput" class="mini-input" min="2" max="12" step="1" value="5">
+            </label>
+          </div>
+          <div class="mc-grid" id="mcGrid"></div>
+          <div id="mcSurfaceWrap" hidden style="margin-top:16px;">
+            <div class="dim" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Surface</div>
+            <div class="mc-grid mc-grid-3" id="mcSurfaceGrid"></div>
+          </div>
+        </div>
+        <div id="typeArea" class="type-row" hidden>
+          <input type="text" id="typeInput" placeholder="Agent name…" autocomplete="off" list="agentSuggestions">
+          <datalist id="agentSuggestions"></datalist>
+          <select id="typeSurfaceSelect" hidden>
+            <option value="">Surface…</option>
+          </select>
+          <button class="btn btn-primary" id="typeSubmitBtn">Submit</button>
+        </div>
+
+        <div class="feedback mono" id="feedback" style="margin-top:12px;"></div>
+
+        <div style="margin-top:14px; display:flex; justify-content:flex-end;">
+          <button class="btn" id="nextBtn" hidden>Next clip →</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="filter-row" style="margin-bottom:10px;">
+          <h2 style="font-size:1rem;">Agents in rotation</h2>
+          <div>
+            <button class="link-btn" id="selectAllBtn">all</button>
+            <span class="dim">/</span>
+            <button class="link-btn" id="selectNoneBtn">none</button>
+          </div>
+        </div>
+        <div class="chip-grid" id="agentChips"></div>
+
+        <div class="filter-row" style="margin-top:18px; margin-bottom:10px;">
+          <h2 style="font-size:1rem;">Surfaces in rotation</h2>
+          <div>
+            <button class="link-btn" id="selectAllSurfacesBtn">all</button>
+            <span class="dim">/</span>
+            <button class="link-btn" id="selectNoneSurfacesBtn">none</button>
+          </div>
+        </div>
+        <div class="chip-grid" id="surfaceChips"></div>
+      </div>
+
+      <div class="stat-hud">
+        <div class="stat-tile"><div class="v mono" id="statCorrect">0</div><div class="k">Correct</div></div>
+        <div class="stat-tile"><div class="v mono" id="statWrong">0</div><div class="k">Wrong</div></div>
+        <div class="stat-tile"><div class="v mono" id="statAccuracy">—</div><div class="k">Accuracy</div></div>
+        <div class="stat-tile"><div class="v mono" id="statStreak">0</div><div class="k">Streak</div></div>
+        <div class="stat-tile"><div class="v mono" id="statBest">0</div><div class="k">Best streak</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    vSteps — add clips by dropping audio into <code>clips/</code> and listing them in <code>clips.json</code>.
+    <div style="margin-top:6px;">
+      <!-- Ko-fi link placeholder: set href to your Ko-fi (or Buy Me a Coffee) page and
+           delete the "hidden" attribute below to show it, e.g. href="https://ko-fi.com/yourname" -->
+      <a href="#" id="supportLink" hidden>☕ Support this project</a>
+    </div>
+  </footer>
+</div>
+
+<audio id="clipPlayer" preload="none" style="display:none;"></audio>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- small utilities ----------
+  function $(id) { return document.getElementById(id); }
+  function safeLocalGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
+  function safeLocalSet(key, val) { try { window.localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
+  function normalize(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+  function clampInt(n, min, max) { n = parseInt(n, 10); if (isNaN(n)) n = min; return Math.max(min, Math.min(max, n)); }
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  // Full agent roster (Sept 2026). Used to power the guess autocomplete,
+  // the sample preview, and each agent's icon badge (a monogram vSteps
+  // draws itself — not Riot's artwork; see the icon-badge notes below).
+  var AGENTS = [
+    "Brimstone", "Viper", "Omen", "Cypher", "Sova", "Sage", "Phoenix", "Jett", "Raze", "Breach",
+    "Reyna", "Killjoy", "Skye", "Yoru", "Astra", "KAY/O", "Chamber", "Neon", "Fade", "Harbor",
+    "Gekko", "Deadlock", "Iso", "Clove", "Vyse", "Tejo", "Waylay", "Veto", "Miks"
+  ];
+  var AGENT_MONOGRAMS = {
+    Brimstone: "BR", Viper: "VP", Omen: "OM", Cypher: "CY", Sova: "SV", Sage: "SG", Phoenix: "PX",
+    Jett: "JT", Raze: "RZ", Breach: "BC", Reyna: "RY", Killjoy: "KJ", Skye: "SK", Yoru: "YR",
+    Astra: "AS", "KAY/O": "KO", Chamber: "CH", Neon: "NE", Fade: "FD", Harbor: "HB", Gekko: "GK",
+    Deadlock: "DL", Iso: "IS", Clove: "CL", Vyse: "VY", Tejo: "TJ", Waylay: "WL", Veto: "VT", Miks: "MK"
+  };
+  var SURFACES = ["Metal", "Wood", "Sand", "Water", "Concrete", "Grass"];
+
+  function agentMonogram(name) {
+    if (AGENT_MONOGRAMS[name]) return AGENT_MONOGRAMS[name];
+    var parts = (name || "").split(/[\s\/\-]+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return (name || "??").slice(0, 2).toUpperCase();
+  }
+  function agentHue(name) {
+    var idx = AGENTS.indexOf(name);
+    if (idx < 0) {
+      var h = 0;
+      for (var i = 0; i < (name || "").length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+      idx = h % AGENTS.length;
+    }
+    return Math.round((idx * (360 / AGENTS.length)) % 360);
+  }
+  function agentColor(name) { return "hsl(" + agentHue(name) + ", 55%, 42%)"; }
+  function makeAgentBadge(name, sizePx) {
+    var el = document.createElement("span");
+    el.className = "agent-badge";
+    var size = sizePx || 28;
+    el.style.width = size + "px";
+    el.style.height = size + "px";
+    el.style.fontSize = Math.max(9, Math.round(size * 0.38)) + "px";
+    el.style.background = agentColor(name);
+    el.textContent = agentMonogram(name);
+    el.title = name;
+    el.setAttribute("aria-hidden", "true");
+    return el;
+  }
+
+  // ---------- state ----------
+  var clips = [];                // active pool: loadedClips, or sample clips while previewing
+  var loadedClips = [];          // real clips loaded from clips.json — {id, agent, surface, filename}
+  var agentList = [];            // distinct agent names present in clips
+  var activeAgents = {};         // agent -> bool, which are in rotation
+  var surfaceList = SURFACES.slice();  // canonical surfaces, plus any extras seen in data
+  var activeSurfaces = {};       // surface -> bool, which are in rotation
+  SURFACES.forEach(function (s) { activeSurfaces[s] = true; });
+  var currentClip = null;
+  var lastClipId = null;
+  var mode = "mc";
+  var score = { correct: 0, wrong: 0, streak: 0 };
+  var bestStreak = parseInt(safeLocalGet("vsteps.bestStreak") || "0", 10) || 0;
+  var answered = false;
+  var playing = false;
+  var audioEl = $("clipPlayer");
+  var audioCtx = null, analyser = null, sourceNode = null, freqData = null;
+  var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var previewMode = false;
+  var requireSurface = safeLocalGet("vsteps.requireSurface") === "1";
+  var optionCount = clampInt(safeLocalGet("vsteps.optionCount") || 5, 2, 12);
+  var pendingAgent = null, pendingAgentBtn = null;
+  var pendingSurface = null, pendingSurfaceBtn = null;
+
+  // ================= shared rendering =================
+  function renderStats() {
+    $("statCorrect").textContent = score.correct;
+    $("statWrong").textContent = score.wrong;
+    var total = score.correct + score.wrong;
+    $("statAccuracy").textContent = total ? Math.round((score.correct / total) * 100) + "%" : "—";
+    $("statStreak").textContent = score.streak;
+    $("statBest").textContent = bestStreak;
+  }
+
+  function rebuildAgentList() {
+    var seen = {};
+    var list = [];
+    clips.forEach(function (c) {
+      if (c.agent && !seen[c.agent]) { seen[c.agent] = true; list.push(c.agent); }
+    });
+    list.sort();
+    agentList = list;
+    agentList.forEach(function (a) { if (!(a in activeAgents)) activeAgents[a] = true; });
+  }
+
+  function rebuildSurfaceList() {
+    var seen = {};
+    SURFACES.forEach(function (s) { seen[s] = true; });
+    var extras = [];
+    clips.forEach(function (c) {
+      if (c.surface && !seen[c.surface]) { seen[c.surface] = true; extras.push(c.surface); }
+    });
+    extras.sort();
+    surfaceList = SURFACES.concat(extras);
+    surfaceList.forEach(function (s) { if (!(s in activeSurfaces)) activeSurfaces[s] = true; });
+  }
+
+  function filteredClips() {
+    return clips.filter(function (c) { return activeAgents[c.agent] && activeSurfaces[c.surface || "Unknown"]; });
+  }
+
+  function updateClipCounter() {
+    var activeAgentCount = agentList.filter(function (a) { return activeAgents[a]; }).length;
+    var activeSurfaceCount = surfaceList.filter(function (s) { return activeSurfaces[s]; }).length;
+    var pool = filteredClips().length;
+    $("clipCounter").textContent = pool + " clip" + (pool === 1 ? "" : "s") + " • " + activeAgentCount + " agent" + (activeAgentCount === 1 ? "" : "s") + " • " + activeSurfaceCount + " surface" + (activeSurfaceCount === 1 ? "" : "s") + " active";
+  }
+
+  function renderAgentChips() {
+    var wrap = $("agentChips");
+    wrap.innerHTML = "";
+    agentList.forEach(function (a) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip chip-agent";
+      b.setAttribute("aria-pressed", activeAgents[a] ? "true" : "false");
+      b.appendChild(makeAgentBadge(a, 18));
+      b.appendChild(document.createTextNode(a));
+      b.addEventListener("click", function () {
+        activeAgents[a] = !activeAgents[a];
+        renderAgentChips();
+        updateClipCounter();
+        pickNextClip();
+      });
+      wrap.appendChild(b);
+    });
+    var dl = $("agentSuggestions");
+    dl.innerHTML = "";
+    agentList.filter(function (a) { return activeAgents[a]; }).forEach(function (a) {
+      var o = document.createElement("option");
+      o.value = a;
+      dl.appendChild(o);
+    });
+  }
+
+  function renderSurfaceChips() {
+    var wrap = $("surfaceChips");
+    wrap.innerHTML = "";
+    surfaceList.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.setAttribute("aria-pressed", activeSurfaces[s] ? "true" : "false");
+      b.textContent = s;
+      b.addEventListener("click", function () {
+        activeSurfaces[s] = !activeSurfaces[s];
+        renderSurfaceChips();
+        updateClipCounter();
+        pickNextClip();
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+  // ================= practice: answer UI =================
+  function renderNoPoolMessage(msg) {
+    $("mcAgentLabel").hidden = true;
+    $("mcSurfaceWrap").hidden = true;
+    $("mcArea").hidden = false;
+    $("typeArea").hidden = true;
+    $("mcGrid").innerHTML = '<div class="dim" style="flex-basis:100%; text-align:center; padding:8px 2px;">' + escapeHtml(msg) + "</div>";
+  }
+
+  function highlightPicked(gridEl, btnEl) {
+    gridEl.querySelectorAll(".mc-btn").forEach(function (x) { x.classList.remove("picked"); });
+    btnEl.classList.add("picked");
+  }
+
+  function tryFinalizeMcAnswer() {
+    if (pendingAgent && (pendingSurface || !requireSurface)) {
+      submitAnswer(pendingAgent, pendingSurface, pendingAgentBtn, pendingSurfaceBtn);
+    }
+  }
+
+  function buildSurfaceMcGrid() {
+    var grid = $("mcSurfaceGrid");
+    grid.innerHTML = "";
+    shuffle(SURFACES.slice()).forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "mc-btn";
+      b.textContent = s;
+      b.dataset.surface = s;
+      b.addEventListener("click", function () {
+        if (answered) return;
+        pendingSurface = s;
+        pendingSurfaceBtn = b;
+        highlightPicked(grid, b);
+        tryFinalizeMcAnswer();
+      });
+      grid.appendChild(b);
+    });
+  }
+
+  function rebuildAnswerUI() {
+    if (!currentClip) return;
+    pendingAgent = null; pendingAgentBtn = null;
+    pendingSurface = null; pendingSurfaceBtn = null;
+    if (mode === "mc") {
+      var agentsPool = agentList.filter(function (a) { return activeAgents[a]; });
+      if (agentsPool.length < 2) {
+        renderNoPoolMessage("Select at least 2 agents to use multiple choice, or switch to Type answer.");
+        return;
+      }
+      $("mcArea").hidden = false;
+      $("typeArea").hidden = true;
+      $("mcAgentLabel").hidden = !requireSurface;
+      $("mcSurfaceWrap").hidden = !requireSurface;
+      var options = shuffle(agentsPool);
+      if (options.length > optionCount) {
+        var rest = options.filter(function (a) { return a !== currentClip.agent; }).slice(0, optionCount - 1);
+        rest.push(currentClip.agent);
+        options = shuffle(rest);
+      }
+      var grid = $("mcGrid");
+      grid.innerHTML = "";
+      options.forEach(function (a) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "mc-btn";
+        b.dataset.agent = a;
+        b.setAttribute("aria-label", a);
+        b.appendChild(makeAgentBadge(a, 42));
+        var cap = document.createElement("span");
+        cap.className = "mc-name";
+        cap.textContent = a;
+        b.appendChild(cap);
+        b.addEventListener("click", function () {
+          if (answered) return;
+          if (!requireSurface) { submitAnswer(a, null, b, null); return; }
+          pendingAgent = a;
+          pendingAgentBtn = b;
+          highlightPicked(grid, b);
+          tryFinalizeMcAnswer();
+        });
+        grid.appendChild(b);
+      });
+      if (requireSurface) buildSurfaceMcGrid();
+    } else {
+      $("mcArea").hidden = true;
+      $("typeArea").hidden = false;
+      var input = $("typeInput");
+      input.value = "";
+      input.disabled = false;
+      $("typeSubmitBtn").disabled = false;
+      var surfSel = $("typeSurfaceSelect");
+      surfSel.hidden = !requireSurface;
+      surfSel.value = "";
+      surfSel.disabled = false;
+    }
+  }
+
+  function submitTypeAnswer() {
+    if (answered) return;
+    var v = $("typeInput").value.trim();
+    if (!v) return;
+    var surfaceVal = requireSurface ? $("typeSurfaceSelect").value : null;
+    if (requireSurface && !surfaceVal) { $("typeSurfaceSelect").focus(); return; }
+    submitAnswer(v, surfaceVal, null, null);
+  }
+
+  function submitAnswer(selectedAgent, selectedSurface, agentBtnEl, surfaceBtnEl) {
+    if (!currentClip || answered) return;
+    answered = true;
+    var correctAgent = currentClip.agent;
+    var correctSurface = currentClip.surface;
+    var isCorrectAgent = normalize(selectedAgent) === normalize(correctAgent);
+    var isCorrectSurface = !requireSurface || normalize(selectedSurface) === normalize(correctSurface);
+    var isCorrect = isCorrectAgent && isCorrectSurface;
+    if (isCorrect) {
+      score.correct++; score.streak++;
+      if (score.streak > bestStreak) { bestStreak = score.streak; safeLocalSet("vsteps.bestStreak", String(bestStreak)); }
+    } else {
+      score.wrong++; score.streak = 0;
+    }
+    renderStats();
+    var fb = $("feedback");
+    fb.className = "feedback mono show " + (isCorrect ? "correct" : "wrong");
+    if (requireSurface) {
+      if (isCorrect) {
+        fb.textContent = "✓ Correct — " + correctAgent + " · " + correctSurface;
+      } else {
+        var bits = [];
+        bits.push(isCorrectAgent ? "agent ✓" : "agent ✗ (" + correctAgent + ")");
+        bits.push(isCorrectSurface ? "surface ✓" : "surface ✗ (" + correctSurface + ")");
+        fb.textContent = "✗ " + bits.join(" · ");
+      }
+    } else {
+      fb.textContent = isCorrect ? ("✓ Correct — " + correctAgent) : ("✗ It was " + correctAgent);
+    }
+    if (mode === "mc") {
+      var agentButtons = $("mcGrid").querySelectorAll(".mc-btn");
+      agentButtons.forEach(function (b) {
+        b.disabled = true;
+        b.classList.remove("picked");
+        if (b.dataset.agent === correctAgent) b.classList.add("correct");
+        else if (b === agentBtnEl) b.classList.add("wrong");
+      });
+      if (requireSurface) {
+        var surfaceButtons = $("mcSurfaceGrid").querySelectorAll(".mc-btn");
+        surfaceButtons.forEach(function (b) {
+          b.disabled = true;
+          b.classList.remove("picked");
+          if (b.dataset.surface === correctSurface) b.classList.add("correct");
+          else if (b === surfaceBtnEl) b.classList.add("wrong");
+        });
+      }
+    } else {
+      $("typeInput").disabled = true;
+      $("typeSubmitBtn").disabled = true;
+      if (requireSurface) $("typeSurfaceSelect").disabled = true;
+    }
+    $("nextBtn").hidden = false;
+    $("replayBtn").disabled = false;
+  }
+
+  function pickNextClip() {
+    answered = false;
+    playing = false;
+    try { audioEl.pause(); } catch (e) { /* ignore */ }
+    $("idlePing").classList.remove("playing");
+    $("scopeStatus").textContent = "idle";
+    $("feedback").className = "feedback mono";
+    $("feedback").textContent = "";
+    $("nextBtn").hidden = true;
+    updateClipCounter();
+    var pool = filteredClips();
+    if (pool.length === 0) {
+      currentClip = null;
+      $("playBtn").disabled = true;
+      $("replayBtn").disabled = true;
+      renderNoPoolMessage("Select at least one agent above to start.");
+      if (previewMode) $("previewAnswer").textContent = "";
+      return;
+    }
+    var candidates = pool;
+    if (pool.length > 1 && lastClipId) {
+      var narrowed = pool.filter(function (c) { return c.id !== lastClipId; });
+      if (narrowed.length > 0) candidates = narrowed;
+    }
+    var chosen = candidates[Math.floor(Math.random() * candidates.length)];
+    currentClip = chosen;
+    lastClipId = chosen.id;
+    $("playBtn").disabled = false;
+    $("replayBtn").disabled = true;
+    $("scopeStatus").textContent = "ready";
+    if (previewMode) $("previewAnswer").textContent = chosen.agent + " · " + chosen.surface;
+    rebuildAnswerUI();
+  }
+
+  // ================= audio: load + playback + visualizer =================
+  function ensureAudioGraph() {
+    if (audioCtx) return;
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+      sourceNode = audioCtx.createMediaElementSource(audioEl);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 128;
+      sourceNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    } catch (e) {
+      console.warn("visualizer unavailable", e);
+      analyser = null;
+    }
+  }
+
+  function simulateSamplePlayback() {
+    $("playBtn").disabled = true;
+    $("replayBtn").disabled = true;
+    playing = true;
+    $("idlePing").classList.add("playing");
+    $("scopeStatus").textContent = "sample (no audio)";
+    setTimeout(function () {
+      playing = false;
+      $("idlePing").classList.remove("playing");
+      $("scopeStatus").textContent = "ready";
+      $("playBtn").disabled = false;
+      $("replayBtn").disabled = false;
+    }, 850);
+  }
+
+  function playCurrentClip() {
+    if (!currentClip) return;
+    var clip = currentClip;
+    if (clip.sampleOnly) { simulateSamplePlayback(); return; }
+    $("playBtn").disabled = true;
+    // Static files served directly by the host — no fetch/decode needed,
+    // just point the <audio> element at clips/<filename>.
+    audioEl.src = "clips/" + encodeURIComponent(clip.filename);
+    ensureAudioGraph();
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(function () {});
+    var p = audioEl.play();
+    if (p && p.catch) p.catch(function (e) { console.warn("playback failed", e); });
+    playing = true;
+    $("idlePing").classList.add("playing");
+    $("scopeStatus").textContent = "live";
+    $("playBtn").disabled = false;
+    $("replayBtn").disabled = false;
+  }
+
+  audioEl.addEventListener("ended", function () {
+    playing = false;
+    $("idlePing").classList.remove("playing");
+    $("scopeStatus").textContent = "ready";
+  });
+
+  audioEl.addEventListener("error", function () {
+    if (!currentClip || currentClip.sampleOnly || !audioEl.src) return;
+    console.warn("clip failed to load, skipping:", currentClip.filename);
+    playing = false;
+    $("idlePing").classList.remove("playing");
+    $("playBtn").disabled = false;
+    pickNextClip();
+  });
+
+  function sizeCanvas() {
+    var canvas = $("scopeCanvas");
+    var rect = canvas.parentElement.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  }
+
+  function drawScope() {
+    var canvas = $("scopeCanvas");
+    var ctx = canvas.getContext("2d");
+    var w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    var barCount = 28;
+    var gap = Math.max(2, w * 0.006);
+    var barW = (w - gap * (barCount - 1)) / barCount;
+    var accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#4CE7C9";
+    var values = new Array(barCount);
+    if (playing && analyser) {
+      if (!freqData) freqData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(freqData);
+      var bucket = Math.floor(freqData.length / barCount) || 1;
+      for (var i = 0; i < barCount; i++) {
+        var sum = 0, c = 0;
+        for (var j = i * bucket; j < Math.min(freqData.length, (i + 1) * bucket); j++) { sum += freqData[j]; c++; }
+        values[i] = c ? (sum / c) / 255 : 0;
+      }
+    } else if (!reducedMotion) {
+      var t = Date.now() / 1000;
+      for (var i2 = 0; i2 < barCount; i2++) values[i2] = 0.08 + 0.05 * Math.sin(t * 1.4 + i2 * 0.5);
+    } else {
+      for (var i3 = 0; i3 < barCount; i3++) values[i3] = 0.08;
+    }
+    ctx.fillStyle = accent;
+    ctx.globalAlpha = playing ? 1 : 0.55;
+    for (var k = 0; k < barCount; k++) {
+      var vh = Math.max(2, values[k] * h * 0.92);
+      var x = k * (barW + gap);
+      ctx.fillRect(x, h - vh, barW, vh);
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(drawScope);
+  }
+
+  // ================= sample preview (no real clips yet) =================
+  function buildSampleClips() {
+    return AGENTS.map(function (a, i) {
+      return { id: "sample-" + i, agent: a, surface: SURFACES[i % SURFACES.length], filename: "sample", sampleOnly: true };
+    });
+  }
+
+  function enterPreview() {
+    previewMode = true;
+    clips = buildSampleClips();
+    rebuildAgentList();
+    rebuildSurfaceList();
+    renderAgentChips();
+    renderSurfaceChips();
+    $("practiceUnavailable").hidden = true;
+    $("practiceEmpty").hidden = true;
+    $("practiceMain").hidden = false;
+    $("previewBanner").hidden = false;
+    pickNextClip();
+  }
+
+  function exitPreview() {
+    previewMode = false;
+    clips = loadedClips;
+    $("previewBanner").hidden = true;
+    onClipsChanged();
+  }
+
+  // ================= data loading =================
+  function onClipsChanged() {
+    $("practiceLoading").hidden = true;
+    rebuildAgentList();
+    rebuildSurfaceList();
+    renderAgentChips();
+    renderSurfaceChips();
+    if (clips.length === 0) {
+      $("practiceUnavailable").hidden = true;
+      $("practiceEmpty").hidden = false;
+      $("practiceMain").hidden = true;
+    } else {
+      $("practiceUnavailable").hidden = true;
+      $("practiceEmpty").hidden = true;
+      $("practiceMain").hidden = false;
+      if (!currentClip || !clips.some(function (c) { return c.id === currentClip.id; })) {
+        pickNextClip();
+      } else {
+        updateClipCounter();
+      }
+    }
+  }
+
+  function loadClips() {
+    fetch("clips.json", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("fetch " + r.status); return r.json(); })
+      .then(function (data) {
+        loadedClips = (Array.isArray(data) ? data : []).map(function (c, i) {
+          return { id: "clip-" + i, agent: c.agent || "Unknown", surface: c.surface || "Unknown", filename: c.filename || "" };
+        });
+        clips = loadedClips;
+        onClipsChanged();
+      })
+      .catch(function (err) {
+        console.warn("failed to load clips.json", err);
+        $("practiceLoading").hidden = true;
+        $("practiceUnavailable").hidden = false;
+      });
+  }
+
+  // ================= wiring =================
+  function wireEvents() {
+    $("previewBtn").addEventListener("click", enterPreview);
+    $("previewBtn2").addEventListener("click", enterPreview);
+    $("exitPreviewBtn").addEventListener("click", exitPreview);
+
+    var modeBtns = document.querySelectorAll("#modeToggle button");
+    modeBtns.forEach(function (b) {
+      b.addEventListener("click", function () {
+        mode = b.dataset.mode;
+        modeBtns.forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+        if (currentClip) rebuildAnswerUI();
+      });
+    });
+
+    $("playBtn").addEventListener("click", playCurrentClip);
+    $("replayBtn").addEventListener("click", playCurrentClip);
+    $("nextBtn").addEventListener("click", pickNextClip);
+
+    $("typeInput").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitTypeAnswer();
+      }
+    });
+    $("typeInput").addEventListener("input", function (e) {
+      if (answered) return;
+      if (e.inputType && e.inputType.indexOf("delete") === 0) return; // don't fight backspacing
+      var val = this.value;
+      if (!val) return;
+      var lower = val.toLowerCase();
+      var pool = agentList.filter(function (a) { return activeAgents[a]; });
+      var match = pool.filter(function (a) { return a.toLowerCase().indexOf(lower) === 0; })[0];
+      if (match && match.length > val.length) {
+        this.value = val + match.slice(val.length);
+        this.setSelectionRange(val.length, match.length);
+      }
+    });
+    $("typeSurfaceSelect").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); submitTypeAnswer(); }
+    });
+    $("typeSubmitBtn").addEventListener("click", submitTypeAnswer);
+
+    $("requireSurfaceToggle").addEventListener("click", function () {
+      requireSurface = !requireSurface;
+      this.setAttribute("aria-pressed", requireSurface ? "true" : "false");
+      safeLocalSet("vsteps.requireSurface", requireSurface ? "1" : "0");
+      if (currentClip) pickNextClip();
+    });
+
+    $("optionCountInput").addEventListener("change", function () {
+      optionCount = clampInt(this.value, 2, 12);
+      this.value = optionCount;
+      safeLocalSet("vsteps.optionCount", String(optionCount));
+      if (currentClip && mode === "mc") pickNextClip();
+    });
+
+    $("selectAllBtn").addEventListener("click", function () {
+      agentList.forEach(function (a) { activeAgents[a] = true; });
+      renderAgentChips(); updateClipCounter(); pickNextClip();
+    });
+    $("selectNoneBtn").addEventListener("click", function () {
+      agentList.forEach(function (a) { activeAgents[a] = false; });
+      renderAgentChips(); updateClipCounter(); pickNextClip();
+    });
+    $("selectAllSurfacesBtn").addEventListener("click", function () {
+      surfaceList.forEach(function (s) { activeSurfaces[s] = true; });
+      renderSurfaceChips(); updateClipCounter(); pickNextClip();
+    });
+    $("selectNoneSurfacesBtn").addEventListener("click", function () {
+      surfaceList.forEach(function (s) { activeSurfaces[s] = false; });
+      renderSurfaceChips(); updateClipCounter(); pickNextClip();
+    });
+
+    window.addEventListener("resize", sizeCanvas);
+  }
+
+  (function populateTypeSurfaceSelect() {
+    var sel = $("typeSurfaceSelect");
+    SURFACES.forEach(function (s) {
+      var o = document.createElement("option");
+      o.value = s;
+      o.textContent = s;
+      sel.appendChild(o);
+    });
+  })();
+
+  $("requireSurfaceToggle").setAttribute("aria-pressed", requireSurface ? "true" : "false");
+  $("optionCountInput").value = optionCount;
+
+  renderStats();
+  sizeCanvas();
+  wireEvents();
+  requestAnimationFrame(drawScope);
+  loadClips();
+})();
+</script>
+</body>
+</html>
