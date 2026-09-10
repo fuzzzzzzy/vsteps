@@ -12,6 +12,7 @@ index.html          the whole app (HTML + CSS + JS, single file)
 clips.json           the manifest: which audio file belongs to which agent/surface
 clips/                the actual audio files
 build_manifest.py     regenerates clips.json by scanning clips/
+trim_clips.py         cuts a longer recording into individual clips in clips/
 ```
 
 There's no server, database, or upload form — you manage the clip library by
@@ -89,9 +90,53 @@ and redeploys automatically on every push.
 That's it — from here, every `git push` to `main` redeploys the live site
 within roughly a minute, with no dashboard steps.
 
+## Building your clip library
+
+There's no bundled set of Valorant footstep clips in this repo, and that's
+deliberate: the footstep audio is Riot's copyrighted asset, and Riot's fan
+content policy doesn't clearly cover redistributing extracted game audio,
+especially on a site that also takes donations (see [Legal Jibber
+Jabber](https://www.riotgames.com/en/legal) if you want to read the actual
+terms). The safe, standard way fan footstep-trainers handle this is to
+record their own clips rather than distribute Riot's files — you already
+own the right to record and use footage of your own gameplay.
+
+The practical version: go into Valorant's **Practice Range**, spawn or
+select each agent (Peek Frenzy/Range agent select lets you swap freely),
+and walk them over each surface type while recording your screen + audio
+(OBS, Xbox/Windows Game Bar — `Win+G` — or similar). Fifteen or twenty
+minutes of that gives you a source recording covering every agent/surface
+combo.
+
+Once you have that recording, use **`trim_clips.py`** (included in this
+repo) to cut it into individual clips in bulk instead of doing it one at a
+time in an audio editor:
+
+1. Make a `cuts.csv` listing each clip you want, one per line:
+   ```csv
+   source,start,end,agent,surface
+   practice_range_01.mp4,0:12.0,0:13.4,Jett,Metal
+   practice_range_01.mp4,1:03.2,1:04.5,Jett,Wood
+   practice_range_02.mp4,0:05.0,0:06.3,Sova,Sand
+   ```
+   (times are `M:SS.s` or `H:MM:SS.s`; scrub through your recording in any
+   video player to find the timestamps)
+2. Run it:
+   ```bash
+   python3 trim_clips.py cuts.csv
+   ```
+   This calls `ffmpeg` (must be installed and on your PATH — see
+   [ffmpeg.org/download](https://ffmpeg.org/download.html)) to cut each
+   segment straight into `clips/`, already named correctly
+   (`jett_metal_01.mp3`, etc.) so `build_manifest.py` picks them up with no
+   further guessing. Add `--dry-run` first to sanity-check the plan without
+   actually cutting anything.
+3. Regenerate the manifest as usual (next section).
+
 ## Day-to-day: adding new clips
 
-1. Drop new tagged audio files into `clips/`. Name them so the agent and
+1. Drop new tagged audio files into `clips/` (whether cut with
+   `trim_clips.py` above, or added by hand). Name them so the agent and
    surface are recognizable in the filename, separated by `_`, `-`, or
    spaces — e.g. `jett_metal_run_01.mp3` or `viper-wood-walk-03.wav`.
    Recognized surfaces: `metal`, `wood`, `sand`, `water`, `concrete`,
