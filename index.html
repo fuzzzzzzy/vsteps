@@ -122,6 +122,9 @@
   }
 
   .player-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .volume-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .volume-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .volume-row .mono { min-width: 3.4ch; text-align: right; }
   .btn {
     font-family: "Chakra Petch", sans-serif;
     font-weight: 600;
@@ -309,6 +312,11 @@
           <button class="btn btn-ghost" id="reportBtn" disabled title="Flag a problem with this clip">🚩 Report</button>
           <span class="idle-ping" id="idlePing" aria-hidden="true"></span>
           <span class="dim mono" id="clipCounter" style="margin-left:auto; font-size:0.78rem;"></span>
+        </div>
+        <div class="volume-row">
+          <span aria-hidden="true">🔊</span>
+          <input type="range" id="volumeSlider" min="0" max="100" step="1" value="80" aria-label="Playback volume">
+          <span class="dim mono" id="volumeValue">80%</span>
         </div>
         <div class="report-panel" id="reportPanel" hidden>
           <div class="dim" style="font-size:0.76rem; margin-bottom:8px;">What's wrong with this clip?</div>
@@ -514,6 +522,8 @@
   var audioEl = $("clipPlayer");
   var audioCtx = null, analyser = null, sourceNode = null, freqData = null;
   var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var storedVolume = safeLocalGet("vsteps.volume");
+  var volume = storedVolume === null ? 80 : clampInt(storedVolume, 0, 100);
   var requireSurface = safeLocalGet("vsteps.requireSurface") === "1";
   var optionCount = clampInt(safeLocalGet("vsteps.optionCount") || 5, 2, 12);
   var pendingAgent = null, pendingAgentBtn = null;
@@ -1106,6 +1116,13 @@
     });
     $("typeSubmitBtn").addEventListener("click", submitTypeAnswer);
 
+    $("volumeSlider").addEventListener("input", function () {
+      volume = clampInt(this.value, 0, 100);
+      audioEl.volume = volume / 100;
+      $("volumeValue").textContent = volume + "%";
+      safeLocalSet("vsteps.volume", String(volume));
+    });
+
     $("requireSurfaceToggle").addEventListener("click", function () {
       requireSurface = !requireSurface;
       this.setAttribute("aria-pressed", requireSurface ? "true" : "false");
@@ -1209,6 +1226,9 @@
     });
   })();
 
+  audioEl.volume = volume / 100;
+  $("volumeSlider").value = volume;
+  $("volumeValue").textContent = volume + "%";
   $("requireSurfaceToggle").setAttribute("aria-pressed", requireSurface ? "true" : "false");
   $("optionCountInput").value = optionCount;
 
