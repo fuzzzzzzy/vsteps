@@ -63,6 +63,13 @@
   }
 
   * { box-sizing: border-box; }
+  /* Several panels below set their own `display` (inline style, or a class
+     like .notice / .modal-overlay) so they lay out as flex/grid when shown.
+     Without this rule, that explicit display value wins over the browser's
+     default `[hidden] { display: none }` and the element never actually
+     hides — this !important is what makes toggling .hidden in JS work at
+     all for those panels. */
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     background: var(--bg);
