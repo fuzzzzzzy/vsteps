@@ -129,6 +129,32 @@ it's splitting too aggressively (picking up keyboard/mic noise as separate
 clips) or not aggressively enough (missing quiet gaps), tune `--noise` and
 `--min-silence` — `python3 auto_split.py --help` explains each knob.
 
+### Even faster: tagging existing footage by agent only
+
+If you already have recordings — old match VODs, clips you'd saved for
+other reasons — you can reuse them without labeling anything extra,
+*for the agent tag*. If it's footage of your own matches, you already know
+which agent you played; that's not a guess, it's just a fact you already
+have. Run `auto_split.py` with `--agent` and skip `--surface` entirely:
+```bash
+python3 auto_split.py ranked_vod_03.mp4 --agent Sova
+```
+Surface tagging can't be done this way, and there's no way around that:
+Valorant never shows what material you're standing on anywhere in its UI
+or files, so there's no signal anywhere to extract it from — a script
+guessing at it would just be making something up. Clips from existing
+footage get tagged `surface: Unknown` automatically instead. That's not a
+downside for most practice, though: the site's agent-guessing mode doesn't
+care about surface at all (the "+Surface" setting is off by default), so
+an agent-only clip is just as useful there — it only becomes a gap if you
+specifically want the combined agent+surface quiz mode, and even then you
+can mix in a separately-recorded, surface-tagged batch alongside it later
+without redoing anything.
+
+One recording still needs to be one agent throughout (there's no way to
+auto-detect an agent swap mid-file), but that's usually already how VODs
+are organized — one file per match, one agent per match.
+
 ### Precise path: `trim_clips.py` (when you need exact control)
 
 For clips you want to hand-place — mixing multiple agents in one
@@ -143,7 +169,9 @@ scrubbing through the recording in any video player:
    practice_range_01.mp4,1:03.2,1:04.5,Jett,Wood
    practice_range_02.mp4,0:05.0,0:06.3,Sova,Sand
    ```
-   (times are `M:SS.s` or `H:MM:SS.s`)
+   (times are `M:SS.s` or `H:MM:SS.s`; leave `surface` blank for a clip
+   from existing footage where you don't actually know the surface — it's
+   tagged `Unknown` rather than guessed, same reasoning as above)
 2. Run it:
    ```bash
    python3 trim_clips.py cuts.csv

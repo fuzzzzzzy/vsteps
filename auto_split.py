@@ -23,6 +23,16 @@ using the same convention as build_manifest.py (e.g. jett_metal.mp4 ->
 Jett, Metal) — so naming your recordings sensibly means you don't have to
 pass any flags at all.
 
+Surface is optional. If it's missing (no --surface, and none guessable from
+the filename), clips are tagged surface=Unknown instead of erroring — there
+really is no way to determine surface automatically from ordinary footage,
+since Valorant never shows what you're standing on anywhere. This is the
+path for repurposing existing match VODs you didn't record specifically
+for this: you already know which agent you played (nothing to guess), so
+tag with --agent (or a filename starting with it) and skip --surface
+entirely. Agent-only clips still work fine for the site's default practice
+mode — they just won't show up if the "+Surface" setting is turned on.
+
 Tuning (only matters if it's cutting too much or too little per clip):
     --noise DB        how quiet counts as "silence" (default -30dB;
                        lower/more negative = only counts near-total
@@ -162,14 +172,22 @@ def main():
         guessed_agent, guessed_surface = guess_agent_surface(source.stem)
         agent = agent or guessed_agent
         surface = surface or guessed_surface
-    if not agent or not surface:
+    if not agent:
         print(
-            "error: couldn't determine agent/surface. Pass --agent and --surface explicitly, "
-            "or name the file like jett_metal.mp4.",
+            "error: couldn't determine the agent. Pass --agent explicitly, "
+            "or name the file starting with the agent's name (e.g. jett_something.mp4).",
             file=sys.stderr,
         )
         sys.exit(1)
-    if surface.lower() not in SURFACES:
+    if not surface:
+        # Surface has no signal anywhere in Valorant's footage or metadata —
+        # there's nothing to guess it from unless you deliberately isolated
+        # the recording to one surface. For existing/repurposed footage,
+        # tag agent only and leave surface Unknown rather than fabricate one.
+        surface = "Unknown"
+        print("note: no surface given or guessable from the filename — tagging these clips as surface=Unknown "
+              "(fine for agent-only practice; the site's \"+Surface\" mode just won't include them).")
+    elif surface.lower() not in SURFACES:
         print(f"warning: {surface!r} isn't a recognized surface ({', '.join(sorted(SURFACES))}) — using it as-is", file=sys.stderr)
 
     print(f"source: {source}  ->  agent={agent}  surface={surface}")

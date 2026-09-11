@@ -24,14 +24,21 @@ a header row or not (both are accepted) and these columns:
     start     start time within that recording, e.g. 1:12.5 or 00:01:12.500
     end       end time within that recording, same format
     agent     agent name for this clip, e.g. Jett
-    surface   one of metal, wood, sand, water, concrete, grass (case-insensitive)
+    surface   one of metal, wood, sand, water, concrete, grass (case-insensitive),
+              or leave it blank if you don't know it — there's no way to
+              determine surface from ordinary Valorant footage (nothing in
+              the game exposes it), so blank rows are tagged surface=Unknown
+              rather than guessed. Fine for agent-only practice mode; those
+              clips just won't appear if "+Surface" is turned on.
 
-Example cuts.csv:
+Example cuts.csv (last row has an unknown surface — maybe from a VOD you
+didn't record specifically for this):
 
     source,start,end,agent,surface
     practice_range_01.mp4,0:12.0,0:13.4,Jett,Metal
     practice_range_01.mp4,1:03.2,1:04.5,Jett,Wood
     practice_range_02.mp4,0:05.0,0:06.3,Sova,Sand
+    ranked_vod_03.mp4,2:41.0,2:42.1,Sova,
 
 Output files land in clips/ as <agent>_<surface>_<NN>.mp3, automatically
 numbered per agent/surface combo so re-running with new rows never
@@ -133,10 +140,17 @@ def main():
         source = Path(row["source"])
         agent = row["agent"]
         surface_key = row["surface"].strip().lower()
-        if surface_key not in SURFACES:
+        if not surface_key:
+            # No signal to guess surface from in ordinary footage — leave it
+            # Unknown rather than fabricate one. Still fine for agent-only
+            # practice mode.
+            surface = "Unknown"
+        elif surface_key not in SURFACES:
             print(f"warning: row {i}: {row['surface']!r} isn't a recognized surface "
                   f"({', '.join(sorted(SURFACES))}) — using it as-is anyway", file=sys.stderr)
-        surface = row["surface"].strip().capitalize() if surface_key in SURFACES else row["surface"].strip()
+            surface = row["surface"].strip()
+        else:
+            surface = surface_key.capitalize()
 
         try:
             start_s = parse_time(row["start"])
