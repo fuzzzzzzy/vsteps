@@ -227,12 +227,6 @@
   /* ---- empty / notice states ---- */
   .notice { padding: 26px 20px; text-align: center; color: var(--text-dim); display: flex; flex-direction: column; gap: 8px; align-items: center; }
 
-  .preview-banner {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 10px 14px; border: 1px solid var(--warn); color: var(--warn);
-    font-family: "IBM Plex Mono", monospace; font-size: 0.8rem;
-  }
-  .preview-banner .link-btn { color: var(--warn); flex: none; }
   .notice .big { font-size: 2rem; }
 
   footer { text-align: center; color: var(--text-dim); font-size: 0.76rem; padding-top: 8px; }
@@ -269,22 +263,15 @@
       <div class="big">👣</div>
       <div><strong>Couldn't load the clip library.</strong></div>
       <div class="dim">Make sure <code class="mono">clips.json</code> is sitting next to this page and you're viewing it over http/https rather than a local <code class="mono">file://</code> path — browsers block that fetch from a file path. Run a static server (e.g. <code class="mono">python3 -m http.server</code>) if you're testing locally.</div>
-      <button class="btn" id="previewBtn" style="margin-top:8px;">Preview the guessing screen</button>
     </div>
 
     <div id="practiceEmpty" class="panel notice" hidden>
       <div class="big">👣</div>
       <div><strong>No clips in the range yet.</strong></div>
       <div class="dim" id="practiceEmptyHint">The clip library is empty — add tagged audio files to the <code class="mono">clips/</code> folder and list them in <code class="mono">clips.json</code>.</div>
-      <button class="btn" id="previewBtn2" style="margin-top:8px;">Preview the guessing screen</button>
     </div>
 
     <div id="practiceMain" hidden style="display:flex; flex-direction:column; gap:18px;">
-
-      <div class="preview-banner" id="previewBanner" hidden>
-        <span>⚠ Sample preview, no real audio — this clip is <span id="previewAnswer" class="mono" style="font-weight:600;"></span></span>
-        <button type="button" class="link-btn" id="exitPreviewBtn">Exit preview</button>
-      </div>
 
       <div class="panel player-panel">
         <div class="scope">
@@ -409,9 +396,9 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  // Full agent roster (Sept 2026). Used to power the guess autocomplete,
-  // the sample preview, and each agent's icon badge (a monogram vSteps
-  // draws itself — not Riot's artwork; see the icon-badge notes below).
+  // Full agent roster (Sept 2026). Used to power the guess autocomplete
+  // and each agent's icon badge (a monogram vSteps draws itself — not
+  // Riot's artwork; see the icon-badge notes below).
   var AGENTS = [
     "Brimstone", "Viper", "Omen", "Cypher", "Sova", "Sage", "Phoenix", "Jett", "Raze", "Breach",
     "Reyna", "Killjoy", "Skye", "Yoru", "Astra", "KAY/O", "Chamber", "Neon", "Fade", "Harbor",
@@ -456,8 +443,7 @@
   }
 
   // ---------- state ----------
-  var clips = [];                // active pool: loadedClips, or sample clips while previewing
-  var loadedClips = [];          // real clips loaded from clips.json — {id, agent, surface, filename}
+  var clips = [];                 // clips loaded from clips.json — {id, agent, surface, filename}
   var agentList = [];            // distinct agent names present in clips
   var activeAgents = {};         // agent -> bool, which are in rotation
   var surfaceList = SURFACES.slice();  // canonical surfaces, plus any extras seen in data
@@ -473,7 +459,6 @@
   var audioEl = $("clipPlayer");
   var audioCtx = null, analyser = null, sourceNode = null, freqData = null;
   var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  var previewMode = false;
   var requireSurface = safeLocalGet("vsteps.requireSurface") === "1";
   var optionCount = clampInt(safeLocalGet("vsteps.optionCount") || 5, 2, 12);
   var pendingAgent = null, pendingAgentBtn = null;
@@ -747,7 +732,6 @@
       $("playBtn").disabled = true;
       $("replayBtn").disabled = true;
       renderNoPoolMessage("Select at least one agent above to start.");
-      if (previewMode) $("previewAnswer").textContent = "";
       return;
     }
     var candidates = pool;
@@ -761,7 +745,6 @@
     $("playBtn").disabled = false;
     $("replayBtn").disabled = true;
     $("scopeStatus").textContent = "ready";
-    if (previewMode) $("previewAnswer").textContent = chosen.agent + " · " + chosen.surface;
     rebuildAnswerUI();
   }
 
@@ -783,25 +766,9 @@
     }
   }
 
-  function simulateSamplePlayback() {
-    $("playBtn").disabled = true;
-    $("replayBtn").disabled = true;
-    playing = true;
-    $("idlePing").classList.add("playing");
-    $("scopeStatus").textContent = "sample (no audio)";
-    setTimeout(function () {
-      playing = false;
-      $("idlePing").classList.remove("playing");
-      $("scopeStatus").textContent = "ready";
-      $("playBtn").disabled = false;
-      $("replayBtn").disabled = false;
-    }, 850);
-  }
-
   function playCurrentClip() {
     if (!currentClip) return;
     var clip = currentClip;
-    if (clip.sampleOnly) { simulateSamplePlayback(); return; }
     $("playBtn").disabled = true;
     // Static files served directly by the host — no fetch/decode needed,
     // just point the <audio> element at clips/<filename>.
@@ -824,7 +791,7 @@
   });
 
   audioEl.addEventListener("error", function () {
-    if (!currentClip || currentClip.sampleOnly || !audioEl.src) return;
+    if (!currentClip || !audioEl.src) return;
     console.warn("clip failed to load, skipping:", currentClip.filename);
     playing = false;
     $("idlePing").classList.remove("playing");
@@ -876,34 +843,6 @@
     requestAnimationFrame(drawScope);
   }
 
-  // ================= sample preview (no real clips yet) =================
-  function buildSampleClips() {
-    return AGENTS.map(function (a, i) {
-      return { id: "sample-" + i, agent: a, surface: SURFACES[i % SURFACES.length], filename: "sample", sampleOnly: true };
-    });
-  }
-
-  function enterPreview() {
-    previewMode = true;
-    clips = buildSampleClips();
-    rebuildAgentList();
-    rebuildSurfaceList();
-    renderAgentChips();
-    renderSurfaceChips();
-    $("practiceUnavailable").hidden = true;
-    $("practiceEmpty").hidden = true;
-    $("practiceMain").hidden = false;
-    $("previewBanner").hidden = false;
-    pickNextClip();
-  }
-
-  function exitPreview() {
-    previewMode = false;
-    clips = loadedClips;
-    $("previewBanner").hidden = true;
-    onClipsChanged();
-  }
-
   // ================= data loading =================
   function onClipsChanged() {
     $("practiceLoading").hidden = true;
@@ -931,10 +870,9 @@
     fetch("clips.json", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("fetch " + r.status); return r.json(); })
       .then(function (data) {
-        loadedClips = (Array.isArray(data) ? data : []).map(function (c, i) {
+        clips = (Array.isArray(data) ? data : []).map(function (c, i) {
           return { id: "clip-" + i, agent: c.agent || "Unknown", surface: c.surface || "Unknown", filename: c.filename || "" };
         });
-        clips = loadedClips;
         onClipsChanged();
       })
       .catch(function (err) {
@@ -946,10 +884,6 @@
 
   // ================= wiring =================
   function wireEvents() {
-    $("previewBtn").addEventListener("click", enterPreview);
-    $("previewBtn2").addEventListener("click", enterPreview);
-    $("exitPreviewBtn").addEventListener("click", exitPreview);
-
     var modeBtns = document.querySelectorAll("#modeToggle button");
     modeBtns.forEach(function (b) {
       b.addEventListener("click", function () {
