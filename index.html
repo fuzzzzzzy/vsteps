@@ -111,9 +111,22 @@
   .brand-logo { width: 44px; height: 44px; flex: none; border-radius: 10px; background: #0E8A79; padding: 8px; box-sizing: border-box; }
   header h1 { font-size: clamp(1.7rem, 1.35rem + 1.6vw, 2.3rem); }
   header p.tagline { margin: 0; color: var(--text-dim); font-size: 0.95rem; text-align: center; }
-  .header-actions { margin-top: 2px; font-size: 0.82rem; text-align: center; }
-  .header-actions a { color: var(--accent); text-decoration: none; }
-  .header-actions a:hover { text-decoration: underline; }
+  .header-actions { margin-top: 4px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .header-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: "IBM Plex Sans", ui-sans-serif, sans-serif;
+    font-size: 1rem; font-weight: 600; line-height: 1;
+    padding: 12px 22px; border-radius: 999px; cursor: pointer;
+    border: 1px solid transparent; text-decoration: none;
+    background: var(--accent); color: var(--accent-contrast);
+    box-shadow: var(--shadow);
+  }
+  .header-cta:hover { background: var(--accent-strong); }
+  .header-cta.header-cta-outline {
+    background: transparent; color: var(--accent); border-color: var(--accent);
+    box-shadow: none;
+  }
+  .header-cta.header-cta-outline:hover { background: var(--accent); color: var(--accent-contrast); }
 
   /* ---- shared panel shape ---- */
   .panel {
@@ -346,11 +359,10 @@
         <h1>ValoStep</h1>
       </div>
     </div>
-    <p class="tagline">Play a tagged footstep clip and call the agent. The same way you'd have to do it in-game.</p>
+    <p class="tagline">Play a tagged footstep clip and call the agent. The same way you'd do it in-game.</p>
     <div class="header-actions">
-      <button type="button" class="link-btn" id="viewLeaderboardBtn">🏆 Leaderboard</button>
-      &nbsp;·&nbsp;
-      <a href="https://ko-fi.com/fuzzzzy" id="supportLink" target="_blank" rel="noopener">☕ Support me</a>
+      <button type="button" class="header-cta" id="viewLeaderboardBtn">🏆 Leaderboard</button>
+      <a class="header-cta header-cta-outline" href="https://ko-fi.com/fuzzzzy" id="supportLink" target="_blank" rel="noopener">☕ Support me</a>
     </div>
   </header>
 
@@ -940,7 +952,7 @@
     var rows = lbCache[lbActiveTab] || [];
     $("lbNote").textContent = lbActiveTab === "accuracy"
       ? "Minimum " + lbCache.minAttempts + " clips answered, using 5+ multiple-choice options."
-      : "";
+      : "Multiple-choice answers need 5+ options to count.";
     $("lbEmptyMsg").hidden = rows.length > 0;
     rows.forEach(function (r, i) {
       var row = document.createElement("div");
@@ -1227,7 +1239,7 @@
       }
     } else {
       fb.textContent = "";
-      fb.appendChild(document.createTextNode(isCorrect ? "✓ Correct —" : "✗ It was"));
+      fb.appendChild(document.createTextNode(isCorrect ? "✓ Correct —" : "✗"));
       fb.appendChild(makeAgentBadge(correctAgent, 22));
       fb.appendChild(document.createTextNode(correctAgent));
     }
