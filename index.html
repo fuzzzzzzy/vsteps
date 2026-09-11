@@ -20,9 +20,10 @@
 <meta name="twitter:description" content="Practice calling Valorant agents by their footsteps. Play a tagged footstep clip and guess the agent by ear.">
 <meta name="twitter:image" content="https://www.valostep.win/og-image.png">
 
-<!-- Original monogram icon (not Riot artwork) — an inline SVG data URI so
-     the favicon doesn't need a separate file. -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230E8A79'/%3E%3Ctext x='32' y='44' font-family='monospace' font-weight='700' font-size='28' fill='white' text-anchor='middle'%3EVS%3C/text%3E%3C/svg%3E">
+<!-- Favicon: the uploaded footstep logo (icons/logo_icon.webp) composited
+     onto a rounded teal badge (icons/favicon.png, generated once — see
+     the "Updating the logo" note in README.md if you replace the logo). -->
+<link rel="icon" type="image/png" href="icons/favicon.png">
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -102,11 +103,12 @@
   h1, h2, h3 { font-family: "Chakra Petch", ui-sans-serif, sans-serif; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
   .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   .dim { color: var(--text-dim); }
-  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
 
   /* ---- header ---- */
   header { display: flex; flex-direction: column; gap: 10px; }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-logo { width: 44px; height: 44px; flex: none; border-radius: 10px; background: #0E8A79; padding: 8px; box-sizing: border-box; }
   header h1 { font-size: clamp(1.7rem, 1.35rem + 1.6vw, 2.3rem); }
   header p.tagline { margin: 0; color: var(--text-dim); font-size: 0.95rem; max-width: 46ch; }
 
@@ -336,8 +338,8 @@
 <div class="wrap">
   <header>
     <div class="header-top">
-      <div>
-        <div class="eyebrow">Audio Recognition Drill</div>
+      <div class="brand">
+        <img class="brand-logo" src="icons/logo_icon.webp" alt="" width="44" height="44">
         <h1>ValoStep</h1>
       </div>
     </div>
@@ -484,7 +486,7 @@
       <a href="#" id="supportLink" hidden>☕ Support this project</a>
     </div>
     <div class="dim" style="margin-top:10px; font-size:0.74rem;">
-      Fan-made practice tool. Not affiliated with or endorsed by Riot Games.
+      practice tool. Not affiliated or endorsed by Riot Games.
     </div>
   </footer>
 </div>
@@ -523,9 +525,9 @@
     </form>
     <div class="lb-msg" id="lbIdentityMsg"></div>
     <div class="dim" id="lbIdentityExplainer" style="font-size:0.74rem; margin:-6px 0 14px;">
-      Answers you get right/wrong sync here automatically once you've joined. No email or real
-      account — just a name and a passphrase so nobody else can post under it. Anyone typing this
-      exact name+passphrase combo counts as you, on any device.
+      Answers you get right/wrong sync here automatically once you've joined. There's no email
+      or real account. It's just a name and a passphrase so nobody else can post under it.
+      Anyone typing this exact name+passphrase combo counts as you.
     </div>
 
     <div class="segmented" id="lbTabs">
@@ -862,8 +864,18 @@
     $("lbIdentityForm").hidden = !!id;
     $("lbIdentityExplainer").hidden = !!id;
     if (id) $("lbCurrentName").textContent = id.name;
-    $("lbIdentityMsg").textContent = "";
-    $("lbIdentityMsg").className = "lb-msg";
+    var msg = $("lbIdentityMsg");
+    if (!id && safeLocalGet("vsteps.lbKicked") === "1") {
+      // Explain a silent logout from syncScoreToServer()'s 409 handling
+      // below, the one time it happens, instead of just reopening on the
+      // join form with no explanation.
+      safeLocalSet("vsteps.lbKicked", "");
+      msg.textContent = "Signed out — that name + passphrase no longer matches on the server (maybe it's being used elsewhere now). Rejoin below.";
+      msg.className = "lb-msg err";
+    } else {
+      msg.textContent = "";
+      msg.className = "lb-msg";
+    }
   }
 
   // Best-effort: fires after every answered clip if this browser has
@@ -880,8 +892,13 @@
     }).then(function (r) {
       if (r.status === 409) {
         // Someone else already owns this name with a different passphrase.
-        // Stop trying to sync under it until the visitor picks a new one.
+        // Stop trying to sync under it, and let the visitor know next time
+        // they open the leaderboard rather than silently logging them out
+        // with no explanation. Should be rare now that joining itself is
+        // checked immediately via /api/identity — this mainly covers the
+        // name being claimed by someone else in between.
         lbClearIdentity();
+        safeLocalSet("vsteps.lbKicked", "1");
       }
     }).catch(function () { /* offline or not deployed yet — nothing else to do */ });
   }
@@ -1609,12 +1626,46 @@
         msg.className = "lb-msg err";
         return;
       }
-      lbSetIdentity(name, pass);
-      $("lbNameInput").value = "";
-      $("lbPassInput").value = "";
-      lbRenderIdentity();
-      msg.textContent = "Joined — future answers will sync automatically.";
-      msg.className = "lb-msg ok";
+      var submitBtn = $("lbIdentityForm").querySelector("button[type=submit]");
+      submitBtn.disabled = true;
+      msg.textContent = "Checking…";
+      msg.className = "lb-msg";
+
+      // Actually claims (or verifies) name+passphrase against the server
+      // before treating the join as successful — previously this just
+      // saved to localStorage unconditionally, so a wrong/mismatched
+      // passphrase silently "worked" until the first synced answer quietly
+      // failed. See functions/api/identity.js.
+      function joinLocally() {
+        lbSetIdentity(name, pass);
+        $("lbNameInput").value = "";
+        $("lbPassInput").value = "";
+        lbRenderIdentity();
+        $("lbIdentityMsg").textContent = "Joined — future answers will sync automatically.";
+        $("lbIdentityMsg").className = "lb-msg ok";
+        submitBtn.disabled = false;
+      }
+
+      fetch("/api/identity", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: name, passphrase: pass })
+      }).then(function (r) {
+        if (r.status === 409) {
+          msg.textContent = "That name is already taken with a different passphrase — try another name, or the passphrase you used before.";
+          msg.className = "lb-msg err";
+          submitBtn.disabled = false;
+          return;
+        }
+        // Any other response (200 = verified/claimed, or a non-409 error
+        // such as the leaderboard backend not being set up yet) falls
+        // through to joining locally, so the rest of the site keeps
+        // working even before the D1 database is configured.
+        joinLocally();
+      }).catch(function () {
+        // Offline, or the leaderboard function isn't deployed yet.
+        joinLocally();
+      });
     });
     $("lbChangeIdentityBtn").addEventListener("click", function () {
       lbClearIdentity();

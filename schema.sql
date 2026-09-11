@@ -1,5 +1,13 @@
 -- ValoStep leaderboard schema (Cloudflare D1 / SQLite).
 --
+-- Don't paste this file as-is into the dashboard's Console tab — it
+-- flattens pasted newlines onto one line, which turns every `--` comment
+-- below into one giant comment that swallows the real CREATE TABLE
+-- statement too, and Cloudflare rejects it with "Requests without any
+-- query are not supported." Use the single-line version in README.md's
+-- leaderboard setup section instead, or run this file via
+-- `wrangler d1 execute` if you use the CLI (that doesn't flatten lines).
+--
 -- One row per player. name_key is the lowercase-normalized name used for
 -- lookups/uniqueness (so "Ryan" and "ryan" are the same player); display_name
 -- keeps whatever casing they actually typed, for showing on the board.

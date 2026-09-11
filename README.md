@@ -11,7 +11,9 @@ domain.
 index.html             the whole app (HTML + CSS + JS, single file)
 clips.json              the manifest: which audio file belongs to which agent/surface
 clips/                   the actual audio files
-icons/                   optional real per-agent icon files (falls back to a drawn monogram)
+icons/                   optional real per-agent icon files (falls back to a drawn monogram);
+                          also holds the site logo (logo_icon.webp) and the
+                          generated favicon.png built from it (see below)
 og-image.png             link-preview image for shares (Discord/Twitter/etc.)
 build_manifest.py        regenerates clips.json by scanning clips/
 auto_split.py             auto-detects and cuts clips from a recording via silence gaps
@@ -19,6 +21,7 @@ batch_split.py            runs auto_split.py over every recording in a folder at
 trim_clips.py             cuts a longer recording into individual clips using exact timestamps
 normalize_clips.py        evens out clip volume across the whole library
 functions/api/report.js   optional: relays clip reports to a Discord channel (see below)
+functions/api/identity.js  optional: leaderboard - claims/verifies name+passphrase on join (see below)
 functions/api/score.js    optional: leaderboard - records a synced answer (see below)
 functions/api/leaderboard.js  optional: leaderboard - serves the top players (see below)
 schema.sql                the leaderboard's database table, for one-time setup (see below)
@@ -356,21 +359,36 @@ among friends; not a competitive-integrity guarantee.
 1. **Create the database.** Cloudflare dashboard → **Workers & Pages → D1
    SQL Database → Create Database**. Name it anything (e.g. `vsteps-db`).
 2. **Create the table.** Open the database you just made → **Console** tab
-   → paste the contents of `schema.sql` (in this repo) → **Execute**. This
-   only needs to be done once.
+   → paste the SQL below → **Execute**. This only needs to be done once.
+
+   ```sql
+   CREATE TABLE IF NOT EXISTS players ( name_key TEXT PRIMARY KEY, display_name TEXT NOT NULL, passphrase_hash TEXT NOT NULL, correct INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, best_streak INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL );
+   ```
+
+   Use this single-line version, not `schema.sql`'s — the dashboard's
+   Console box flattens pasted newlines onto one line, which turns every
+   `--` comment in `schema.sql` into one giant comment that swallows the
+   real statement after it too, and Cloudflare rejects the result with
+   "Requests without any query are not supported." `schema.sql` itself is
+   still the source of truth for the table shape (and safe to run via
+   `wrangler d1 execute` if you use the CLI, since that doesn't flatten
+   newlines) — just don't paste it as-is into the Console box.
 3. **Bind it to the Pages project.** Your `vsteps` Pages project →
    **Settings → Bindings → Add → D1 database binding** → variable name
-   **`DB`** (this exact name — `functions/api/score.js` and
-   `functions/api/leaderboard.js` both read `env.DB`) → pick the database
-   from step 1. Do this for Production (and Preview too, if you use it).
+   **`DB`** (this exact name — `functions/api/identity.js`,
+   `functions/api/score.js`, and `functions/api/leaderboard.js` all read
+   `env.DB`) → pick the database from step 1. Do this for Production (and
+   Preview too, if you use it).
 4. **Redeploy** — push a commit, or **Retry deployment** on the latest one
    — so the Function picks up the new binding. Same gotcha as the Discord
    webhook variable: a binding added after a deployment doesn't apply
    retroactively to it.
 
-Until the `DB` binding exists, `/api/score` and `/api/leaderboard` quietly
-500 — the rest of the site, including each visitor's own local stats,
-keeps working fine either way.
+Until the `DB` binding exists, `/api/identity`, `/api/score`, and
+`/api/leaderboard` quietly 500 — the rest of the site, including each
+visitor's own local stats, keeps working fine either way, and "Join
+leaderboard" still works locally (it just can't verify the passphrase
+against anything yet).
 
 ### Notes on the design
 
@@ -392,6 +410,15 @@ keeps working fine either way.
   site's script from posting through a visitor's browser, not a direct
   scripted request. A Cloudflare Rate Limiting rule (see above, needs a
   custom domain) is the real fix if that becomes a problem.
+- Clicking "Join leaderboard" calls `functions/api/identity.js`
+  immediately, which claims a brand-new name or verifies the passphrase
+  against an existing one — a taken name shows a real error right away
+  instead of silently saving locally and only failing on the first
+  synced answer. If a name somehow still gets reused between joining and
+  a later sync (e.g. the D1 data was reset), `/api/score`'s 409 clears
+  the local identity and the leaderboard panel explains why the next
+  time it's opened, rather than just quietly dropping back to the join
+  form.
 
 ## Notes
 
@@ -408,6 +435,14 @@ keeps working fine either way.
   pages.dev address outright, so this is the practical equivalent —
   update `CUSTOM_DOMAIN` (and redeploy) if the custom domain ever
   changes.
+- The site logo is `icons/logo_icon.webp` (a white footstep mark, meant
+  to sit on a colored background) — `index.html`'s header displays it
+  directly on a teal CSS badge (`.brand-logo`). `icons/favicon.png` is a
+  separate, pre-composited PNG (the logo flattened onto the same teal
+  badge, since a favicon can't use CSS) used by the `<link rel="icon">`
+  tag. If you replace the logo, regenerate `favicon.png` to match —
+  it's just the new logo centered with ~18% padding on all sides over a
+  `#0E8A79`, ~22%-corner-radius rounded square, exported at 256×256.
 - No per-file size cap other than whatever Cloudflare Pages enforces (at
   the time of writing, Pages allows very large individual asset files —
   well beyond what a footstep clip needs).
