@@ -1,4 +1,4 @@
-# vSteps
+# ValoStep
 
 A self-hosted practice tool for identifying Valorant agents by their footstep
 audio. This version is a plain static site — no backend, no size limit
@@ -8,17 +8,29 @@ domain.
 ## What's in this folder
 
 ```
-index.html          the whole app (HTML + CSS + JS, single file)
-clips.json           the manifest: which audio file belongs to which agent/surface
-clips/                the actual audio files
-build_manifest.py     regenerates clips.json by scanning clips/
-auto_split.py          auto-detects and cuts clips from a recording via silence gaps
-trim_clips.py          cuts a longer recording into individual clips using exact timestamps
+index.html             the whole app (HTML + CSS + JS, single file)
+clips.json              the manifest: which audio file belongs to which agent/surface
+clips/                   the actual audio files
+icons/                   optional real per-agent icon files (falls back to a drawn monogram)
+og-image.png             link-preview image for shares (Discord/Twitter/etc.)
+build_manifest.py        regenerates clips.json by scanning clips/
+auto_split.py             auto-detects and cuts clips from a recording via silence gaps
+batch_split.py            runs auto_split.py over every recording in a folder at once
+trim_clips.py             cuts a longer recording into individual clips using exact timestamps
+normalize_clips.py        evens out clip volume across the whole library
+functions/api/report.js   optional: relays clip reports to a Discord channel (see below)
+functions/api/score.js    optional: leaderboard - records a synced answer (see below)
+functions/api/leaderboard.js  optional: leaderboard - serves the top players (see below)
+schema.sql                the leaderboard's database table, for one-time setup (see below)
 ```
 
-There's no server, database, or upload form — you manage the clip library by
-editing files in this folder and pushing to git. Cloudflare Pages rebuilds
-and redeploys automatically on every push.
+The core app needs no server, database, or upload form — you manage the
+clip library by editing files in this folder and pushing to git, and
+Cloudflare Pages rebuilds and redeploys automatically on every push. The
+`functions/` folder adds two small, entirely optional pieces of backend —
+relaying reports to Discord, and a cross-visitor leaderboard — each with
+its own setup section further down; skip both and everything else still
+works exactly the same.
 
 ## One-time setup
 
@@ -31,7 +43,7 @@ and redeploys automatically on every push.
    cd vsteps-static
    git init
    git add .
-   git commit -m "vSteps"
+   git commit -m "ValoStep"
    git branch -M main
    git remote add origin https://github.com/<you>/<repo>.git
    git push -u origin main
@@ -321,14 +333,81 @@ anything on the shared `*.pages.dev` subdomain. This only works once
 you've attached your own [custom domain](#3-point-your-domain-at-it) to
 the project.
 
+## Leaderboard (optional)
+
+Tracks the top players by lifetime accuracy and by best-ever streak across
+*everyone* who's played, not just the current browser. This needs a real
+database — unlike the Discord report relay, there's no way around that,
+since a leaderboard's whole point is state shared across visitors.
+
+**Identity is intentionally lightweight**: a visitor picks a display name
+and a passphrase (via the 🏆 Leaderboard panel), which get remembered in
+their browser and resent with every synced answer. There's no email, no
+password reset, no real account — it exists purely so someone else can't
+casually post under a name you're already using. It does **not** stop a
+determined person from opening devtools and POSTing fabricated results
+under their *own* name — see the "honest caveat" this README's earlier
+conversation about this feature already covers: any client-reported stat
+can be spoofed by whoever controls the client. Fine for a leaderboard
+among friends; not a competitive-integrity guarantee.
+
+### Setup
+
+1. **Create the database.** Cloudflare dashboard → **Workers & Pages → D1
+   SQL Database → Create Database**. Name it anything (e.g. `vsteps-db`).
+2. **Create the table.** Open the database you just made → **Console** tab
+   → paste the contents of `schema.sql` (in this repo) → **Execute**. This
+   only needs to be done once.
+3. **Bind it to the Pages project.** Your `vsteps` Pages project →
+   **Settings → Bindings → Add → D1 database binding** → variable name
+   **`DB`** (this exact name — `functions/api/score.js` and
+   `functions/api/leaderboard.js` both read `env.DB`) → pick the database
+   from step 1. Do this for Production (and Preview too, if you use it).
+4. **Redeploy** — push a commit, or **Retry deployment** on the latest one
+   — so the Function picks up the new binding. Same gotcha as the Discord
+   webhook variable: a binding added after a deployment doesn't apply
+   retroactively to it.
+
+Until the `DB` binding exists, `/api/score` and `/api/leaderboard` quietly
+500 — the rest of the site, including each visitor's own local stats,
+keeps working fine either way.
+
+### Notes on the design
+
+- Accuracy is lifetime (correct ÷ total answers, all-time, per name), not
+  a single session — accumulates across every device/browser using the
+  same name+passphrase.
+- The accuracy leaderboard requires at least 20 answered clips to qualify
+  (`MIN_ATTEMPTS_FOR_ACCURACY` in `functions/api/leaderboard.js`) so a
+  lucky 1-for-1 doesn't outrank someone with real sample size. Adjust that
+  constant if you want a different bar.
+- The passphrase is hashed (SHA-256) before it's ever written to the
+  database — `functions/api/score.js` never stores or compares it in
+  plain text — but it's still only as strong as whatever the visitor
+  types, and it's stored in their browser's local storage in plain text
+  (not the database) so it can be resent automatically. Treat this the
+  same as any other low-stakes shared password, not a real credential.
+- `/api/score` has the same Origin-header check as `/api/report` (see the
+  report-relay section above) and the same limits — it stops another
+  site's script from posting through a visitor's browser, not a direct
+  scripted request. A Cloudflare Rate Limiting rule (see above, needs a
+  custom domain) is the real fix if that becomes a problem.
+
 ## Notes
 
 - `og-image.png` is the link-preview image shown when the site's URL is
   shared on Discord/Twitter/etc. — original artwork generated for this
   project, not Riot assets. `index.html`'s `<head>` references it (and
-  `og:url`) as an absolute `https://vsteps.pages.dev/...` URL, since
+  `og:url`) as an absolute `https://www.valostep.win/...` URL, since
   preview crawlers fetch those directly rather than resolving them
-  relative to the page — update both if you move to a custom domain.
+  relative to the page — update both if you ever move to a different
+  custom domain.
+- `functions/_middleware.js` 301-redirects any request that comes in on
+  the project's `*.pages.dev` address over to `CUSTOM_DOMAIN` at the top
+  of that file. Cloudflare has no dashboard setting to disable the
+  pages.dev address outright, so this is the practical equivalent —
+  update `CUSTOM_DOMAIN` (and redeploy) if the custom domain ever
+  changes.
 - No per-file size cap other than whatever Cloudflare Pages enforces (at
   the time of writing, Pages allows very large individual asset files —
   well beyond what a footstep clip needs).

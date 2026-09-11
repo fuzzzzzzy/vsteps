@@ -67,7 +67,7 @@ export async function onRequestPost(context) {
   const reasonText = reasonLabels[reason] || reason || "unspecified";
 
   const lines = [
-    "🚩 **New vSteps clip report**",
+    "🚩 **New ValoStep clip report**",
     "`" + filename + "`",
     "Agent: " + (agent || "?") + (surface && surface !== "Unknown" ? "  ·  Surface: " + surface : ""),
     "Reason: " + reasonText + (auto ? "  ·  auto-detected" : "  ·  reported by a user"),

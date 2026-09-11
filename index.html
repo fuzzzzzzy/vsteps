@@ -3,26 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>vSteps</title>
+<title>ValoStep</title>
 <meta name="description" content="Practice calling Valorant agents by their footsteps. A free, ad-free audio recognition drill — play a tagged footstep clip and guess the agent by ear.">
 
 <!-- Open Graph / Twitter link-preview tags. og:url and the image URLs are
      absolute because link-preview crawlers (Discord, Twitter/X, etc.) fetch
      them directly rather than resolving relative to the page — update the
-     domain here if you move off vsteps.pages.dev to a custom domain. -->
+     domain here if you ever move to a different custom domain. -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="vSteps — Valorant Footstep Recognition Drill">
+<meta property="og:title" content="ValoStep — Valorant Footstep Recognition Drill">
 <meta property="og:description" content="Practice calling Valorant agents by their footsteps. Play a tagged footstep clip and guess the agent by ear.">
-<meta property="og:url" content="https://vsteps.pages.dev/">
-<meta property="og:image" content="https://vsteps.pages.dev/og-image.png">
+<meta property="og:url" content="https://www.valostep.win/">
+<meta property="og:image" content="https://www.valostep.win/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="vSteps — Valorant Footstep Recognition Drill">
+<meta name="twitter:title" content="ValoStep — Valorant Footstep Recognition Drill">
 <meta name="twitter:description" content="Practice calling Valorant agents by their footsteps. Play a tagged footstep clip and guess the agent by ear.">
-<meta name="twitter:image" content="https://vsteps.pages.dev/og-image.png">
+<meta name="twitter:image" content="https://www.valostep.win/og-image.png">
 
 <!-- Original monogram icon (not Riot artwork) — an inline SVG data URI so
      the favicon doesn't need a separate file. -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230E8A79'/%3E%3Ctext x='32' y='44' font-family='monospace' font-weight='700' font-size='28' fill='white' text-anchor='middle'%3EvS%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230E8A79'/%3E%3Ctext x='32' y='44' font-family='monospace' font-weight='700' font-size='28' fill='white' text-anchor='middle'%3EVS%3C/text%3E%3C/svg%3E">
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -184,7 +184,7 @@
   }
   .segmented button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 
-  /* ---- agent icon badge (an original monogram vSteps draws itself) ---- */
+  /* ---- agent icon badge (an original monogram ValoStep draws itself) ---- */
   .agent-badge {
     display: inline-flex; align-items: center; justify-content: center; flex: none;
     border-radius: 50%; color: var(--text); background: var(--surface-2);
@@ -304,6 +304,27 @@
   .report-row .remove-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.95rem; flex: none; padding: 0 2px; }
   .report-row .remove-btn:hover { color: var(--danger); }
 
+  /* ---- leaderboard ---- */
+  .lb-identity {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 10px 12px; margin-bottom: 14px; background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .lb-identity input {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.82rem; padding: 6px 8px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 0; flex: 1 1 110px;
+  }
+  .lb-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { flex: none; width: 22px; text-align: right; color: var(--text-dim); font-family: "IBM Plex Mono", monospace; }
+  .lb-name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-stat { flex: none; font-family: "IBM Plex Mono", monospace; color: var(--accent-strong); }
+  .lb-substat { flex: none; color: var(--text-dim); font-size: 0.74rem; }
+  .lb-note { font-size: 0.74rem; color: var(--text-dim); margin: 4px 0 10px; }
+  .lb-msg { font-size: 0.78rem; padding: 4px 0; }
+  .lb-msg.err { color: var(--danger); }
+  .lb-msg.ok { color: var(--accent-strong); }
+
   @media (max-width: 460px) {
     .stat-hud { grid-template-columns: repeat(3, 1fr); }
     .mc-grid .mc-btn { flex-basis: 100%; max-width: 100%; }
@@ -317,7 +338,7 @@
     <div class="header-top">
       <div>
         <div class="eyebrow">Audio Recognition Drill</div>
-        <h1>vSteps</h1>
+        <h1>ValoStep</h1>
       </div>
     </div>
     <p class="tagline">Play a tagged footstep clip and call the agent by ear — the way you'd have to mid-round.</p>
@@ -453,6 +474,8 @@
 
   <footer>
     <div>
+      <button type="button" class="link-btn" id="viewLeaderboardBtn">🏆 Leaderboard</button>
+      &nbsp;·&nbsp;
       <button type="button" class="link-btn" id="viewReportsBtn">🚩 Reported clips (<span id="reportCount">0</span>)</button>
     </div>
     <div style="margin-top:6px;">
@@ -482,6 +505,43 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="leaderboardModalOverlay" hidden>
+  <div class="modal-box">
+    <div class="panel-head">
+      <h2 style="font-size:1rem;">Leaderboard</h2>
+      <button type="button" class="link-btn" id="closeLeaderboardBtn">close ✕</button>
+    </div>
+
+    <div class="lb-identity" id="lbIdentityClaimed" hidden>
+      <span>Playing as <strong id="lbCurrentName"></strong></span>
+      <button type="button" class="link-btn" id="lbChangeIdentityBtn">change</button>
+    </div>
+    <form class="lb-identity" id="lbIdentityForm">
+      <input type="text" id="lbNameInput" placeholder="Display name" maxlength="24" autocomplete="off">
+      <input type="password" id="lbPassInput" placeholder="Passphrase" maxlength="64" autocomplete="off">
+      <button type="submit" class="btn btn-sm">Join leaderboard</button>
+    </form>
+    <div class="lb-msg" id="lbIdentityMsg"></div>
+    <div class="dim" id="lbIdentityExplainer" style="font-size:0.74rem; margin:-6px 0 14px;">
+      Answers you get right/wrong sync here automatically once you've joined. No email or real
+      account — just a name and a passphrase so nobody else can post under it. Anyone typing this
+      exact name+passphrase combo counts as you, on any device.
+    </div>
+
+    <div class="segmented" id="lbTabs">
+      <button type="button" aria-pressed="true" data-tab="accuracy">Top accuracy</button>
+      <button type="button" aria-pressed="false" data-tab="streak">Top streak</button>
+    </div>
+    <div class="lb-note" id="lbNote"></div>
+    <div id="lbList"></div>
+    <div class="dim" id="lbEmptyMsg" style="padding:12px 0;" hidden>No scores yet — be the first!</div>
+    <div class="dim" id="lbErrorMsg" style="padding:12px 0;" hidden>
+      Couldn't reach the leaderboard. <button type="button" class="link-btn" id="lbRetryBtn">Try again</button>
+    </div>
+    <div class="dim" id="lbLoadingMsg" style="padding:12px 0;" hidden>Loading…</div>
+  </div>
+</div>
+
 <audio id="clipPlayer" preload="none" style="display:none;"></audio>
 
 <script>
@@ -508,7 +568,7 @@
     });
   }
   // Full agent roster (Sept 2026). Used to power the guess autocomplete
-  // and each agent's icon badge (a monogram vSteps draws itself — not
+  // and each agent's icon badge (a monogram ValoStep draws itself — not
   // Riot's artwork; see the icon-badge notes below).
   var AGENTS = [
     "Brimstone", "Viper", "Omen", "Cypher", "Sova", "Sage", "Phoenix", "Jett", "Raze", "Breach",
@@ -770,6 +830,122 @@
     textarea.value = reportsAsText(list);
   }
 
+  // ================= leaderboard =================
+  // Deliberately lightweight "identity": a typed display name plus a
+  // simple passphrase, remembered in this browser's local storage and
+  // resent with every synced answer. This is NOT a real account system —
+  // no email, no password reset, and the server only ever sees/stores a
+  // hash of the passphrase (see functions/api/score.js) — it exists purely
+  // so a second person can't casually post scores under a name you're
+  // already using. Someone determined could still fabricate results for
+  // their own name via devtools, same as any client-reported stat.
+  function lbGetIdentity() {
+    var name = safeLocalGet("vsteps.lbName");
+    var pass = safeLocalGet("vsteps.lbPass");
+    if (!name || !pass) return null;
+    return { name: name, passphrase: pass };
+  }
+  function lbSetIdentity(name, pass) {
+    safeLocalSet("vsteps.lbName", name);
+    safeLocalSet("vsteps.lbPass", pass);
+  }
+  function lbClearIdentity() {
+    try {
+      window.localStorage.removeItem("vsteps.lbName");
+      window.localStorage.removeItem("vsteps.lbPass");
+    } catch (e) { /* ignore */ }
+  }
+
+  function lbRenderIdentity() {
+    var id = lbGetIdentity();
+    $("lbIdentityClaimed").hidden = !id;
+    $("lbIdentityForm").hidden = !!id;
+    $("lbIdentityExplainer").hidden = !!id;
+    if (id) $("lbCurrentName").textContent = id.name;
+    $("lbIdentityMsg").textContent = "";
+    $("lbIdentityMsg").className = "lb-msg";
+  }
+
+  // Best-effort: fires after every answered clip if this browser has
+  // joined the leaderboard. Never blocks or errors visibly — local stats
+  // (score.correct/wrong/streak above) already work regardless of whether
+  // this succeeds.
+  function syncScoreToServer(isCorrect, streak) {
+    var id = lbGetIdentity();
+    if (!id) return;
+    fetch("/api/score", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: id.name, passphrase: id.passphrase, correct: isCorrect, streak: streak })
+    }).then(function (r) {
+      if (r.status === 409) {
+        // Someone else already owns this name with a different passphrase.
+        // Stop trying to sync under it until the visitor picks a new one.
+        lbClearIdentity();
+      }
+    }).catch(function () { /* offline or not deployed yet — nothing else to do */ });
+  }
+
+  var lbCache = { accuracy: null, streak: null, minAttempts: 20 };
+  var lbActiveTab = "accuracy";
+
+  function lbLoad() {
+    $("lbErrorMsg").hidden = true;
+    $("lbEmptyMsg").hidden = true;
+    $("lbList").innerHTML = "";
+    $("lbLoadingMsg").hidden = false;
+    fetch("/api/leaderboard", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("fetch " + r.status); return r.json(); })
+      .then(function (data) {
+        lbCache.accuracy = Array.isArray(data.accuracy) ? data.accuracy : [];
+        lbCache.streak = Array.isArray(data.streak) ? data.streak : [];
+        lbCache.minAttempts = data.minAttempts || 20;
+        $("lbLoadingMsg").hidden = true;
+        lbRenderList();
+      })
+      .catch(function (err) {
+        console.warn("failed to load leaderboard", err);
+        $("lbLoadingMsg").hidden = true;
+        $("lbErrorMsg").hidden = false;
+      });
+  }
+
+  function lbRenderList() {
+    var wrap = $("lbList");
+    wrap.innerHTML = "";
+    var rows = lbCache[lbActiveTab] || [];
+    $("lbNote").textContent = lbActiveTab === "accuracy"
+      ? "Minimum " + lbCache.minAttempts + " clips answered to qualify."
+      : "";
+    $("lbEmptyMsg").hidden = rows.length > 0;
+    rows.forEach(function (r, i) {
+      var row = document.createElement("div");
+      row.className = "lb-row";
+      var rank = document.createElement("div");
+      rank.className = "lb-rank";
+      rank.textContent = "#" + (i + 1);
+      var name = document.createElement("div");
+      name.className = "lb-name";
+      name.textContent = r.name;
+      var stat = document.createElement("div");
+      stat.className = "lb-stat";
+      row.appendChild(rank);
+      row.appendChild(name);
+      if (lbActiveTab === "accuracy") {
+        stat.textContent = r.accuracy + "%";
+        var sub = document.createElement("div");
+        sub.className = "lb-substat";
+        sub.textContent = r.correct + "/" + r.total;
+        row.appendChild(stat);
+        row.appendChild(sub);
+      } else {
+        stat.textContent = String(r.bestStreak);
+        row.appendChild(stat);
+      }
+      wrap.appendChild(row);
+    });
+  }
+
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -1012,6 +1188,7 @@
     } else {
       score.wrong++; score.streak = 0;
     }
+    syncScoreToServer(isCorrect, score.streak);
     renderStats();
     var fb = $("feedback");
     fb.className = "feedback mono show " + (isCorrect ? "correct" : "wrong");
@@ -1410,6 +1587,49 @@
       renderReportsList();
       this.textContent = "Clear all";
     });
+
+    $("viewLeaderboardBtn").addEventListener("click", function () {
+      lbRenderIdentity();
+      lbLoad();
+      $("leaderboardModalOverlay").hidden = false;
+    });
+    $("closeLeaderboardBtn").addEventListener("click", function () {
+      $("leaderboardModalOverlay").hidden = true;
+    });
+    $("leaderboardModalOverlay").addEventListener("click", function (e) {
+      if (e.target === $("leaderboardModalOverlay")) $("leaderboardModalOverlay").hidden = true;
+    });
+    $("lbIdentityForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = $("lbNameInput").value.trim();
+      var pass = $("lbPassInput").value;
+      var msg = $("lbIdentityMsg");
+      if (!name || !pass) {
+        msg.textContent = "Enter both a name and a passphrase.";
+        msg.className = "lb-msg err";
+        return;
+      }
+      lbSetIdentity(name, pass);
+      $("lbNameInput").value = "";
+      $("lbPassInput").value = "";
+      lbRenderIdentity();
+      msg.textContent = "Joined — future answers will sync automatically.";
+      msg.className = "lb-msg ok";
+    });
+    $("lbChangeIdentityBtn").addEventListener("click", function () {
+      lbClearIdentity();
+      lbRenderIdentity();
+    });
+    document.querySelectorAll("#lbTabs button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        lbActiveTab = btn.dataset.tab;
+        document.querySelectorAll("#lbTabs button").forEach(function (b) {
+          b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+        });
+        lbRenderList();
+      });
+    });
+    $("lbRetryBtn").addEventListener("click", lbLoad);
 
     window.addEventListener("resize", sizeCanvas);
   }
