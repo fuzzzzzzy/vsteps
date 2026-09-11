@@ -430,6 +430,16 @@ against anything yet).
   list — add more words as you see fit. An existing name is never
   re-checked (only brand-new ones), so this can't retroactively affect
   anyone already on the board.
+- Multiple-choice answers only count toward either leaderboard (accuracy
+  and streak alike) if they were answered with at least 5 options on
+  screen (`MIN_MC_OPTIONS` in `functions/api/score.js`) — fewer options
+  makes a correct guess too easy to come by for the numbers to mean much.
+  `index.html` sends the current mode and option count with every synced
+  answer; a non-qualifying multiple-choice round gets back
+  `{ ok: true, counted: false }` and neither reads nor writes the
+  database. "Type answer" mode has no option count and always counts —
+  typing the exact name from scratch is already harder than any
+  multiple-choice count.
 
 ## Notes
 

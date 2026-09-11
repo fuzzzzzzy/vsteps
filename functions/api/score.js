@@ -27,6 +27,13 @@
 const MAX_NAME_LEN = 24;
 const MAX_PASSPHRASE_LEN = 64;
 const MAX_STREAK = 100000;
+// Multiple-choice answers need at least this many options to count toward
+// either leaderboard - fewer options makes correct guesses (and streaks)
+// too easy to come by for the numbers to mean anything. "Type answer"
+// mode has no option count and always counts - typing the exact name from
+// scratch is already harder than any multiple-choice count. See index.html
+// (submitAnswer -> syncScoreToServer) for what gets sent here.
+const MIN_MC_OPTIONS = 5;
 
 // Same filter as functions/api/identity.js, kept here too as a fallback in
 // case a new name is ever created by a request that skips /api/identity
@@ -86,9 +93,21 @@ export async function onRequestPost(context) {
   let streak = parseInt(body && body.streak, 10);
   if (!Number.isFinite(streak) || streak < 0) streak = 0;
   streak = Math.min(streak, MAX_STREAK);
+  const answerMode = String((body && body.mode) || "");
+  let optionCount = parseInt(body && body.optionCount, 10);
+  if (!Number.isFinite(optionCount)) optionCount = 0;
 
   if (!rawName) return new Response("missing name", { status: 400 });
   if (!passphrase) return new Response("missing passphrase", { status: 400 });
+
+  if (answerMode === "mc" && optionCount < MIN_MC_OPTIONS) {
+    // Doesn't count toward either leaderboard, but isn't an error either -
+    // the visitor didn't do anything wrong, this round just doesn't
+    // qualify. No DB read/write needed either way.
+    return new Response(JSON.stringify({ ok: true, counted: false }), {
+      headers: { "content-type": "application/json" },
+    });
+  }
 
   const nameKey = rawName.toLowerCase();
   const passphraseHash = await sha256Hex(passphrase);

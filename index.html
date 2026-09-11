@@ -895,7 +895,7 @@
     fetch("/api/score", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: id.name, passphrase: id.passphrase, correct: isCorrect, streak: streak })
+      body: JSON.stringify({ name: id.name, passphrase: id.passphrase, correct: isCorrect, streak: streak, mode: mode, optionCount: optionCount })
     }).then(function (r) {
       if (r.status === 409) {
         // Someone else already owns this name with a different passphrase.
@@ -939,7 +939,7 @@
     wrap.innerHTML = "";
     var rows = lbCache[lbActiveTab] || [];
     $("lbNote").textContent = lbActiveTab === "accuracy"
-      ? "Minimum " + lbCache.minAttempts + " clips answered to qualify."
+      ? "Minimum " + lbCache.minAttempts + " clips answered, using 5+ multiple-choice options."
       : "";
     $("lbEmptyMsg").hidden = rows.length > 0;
     rows.forEach(function (r, i) {
