@@ -650,6 +650,29 @@
     if (el) el.textContent = String(loadReports().length);
   }
 
+  // Best-effort: relay a brand-new report to /api/report (a small
+  // Cloudflare Pages Function — see functions/api/report.js) which forwards
+  // it to a Discord channel, so reports from ANY visitor land somewhere you
+  // can see later, not just in that visitor's own browser. This never
+  // blocks or errors visibly to the user — if it's offline, not deployed
+  // yet, or the request fails, the report still saved fine locally above;
+  // this is purely extra delivery on top of that.
+  function syncReportToServer(clip, reason, auto) {
+    try {
+      fetch("/api/report", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          filename: clip.filename,
+          agent: clip.agent,
+          surface: clip.surface,
+          reason: reason,
+          auto: !!auto
+        })
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   function addReport(clip, reason, auto) {
     if (!clip) return;
     var list = loadReports();
@@ -670,6 +693,11 @@
         firstSeen: Date.now(),
         lastSeen: Date.now()
       });
+      // Only sync genuinely new reports — repeat flags of the same clip by
+      // the same browser just bump the local count above, so the Discord
+      // channel doesn't get spammed every time this browser reopens the
+      // same report.
+      syncReportToServer(clip, reason, auto);
     }
     saveReports(list);
   }

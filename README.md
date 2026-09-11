@@ -246,6 +246,36 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000` in a browser.
 
+## Getting clip reports from any visitor (optional)
+
+The site has a 🚩 Report button (and auto-detects silent/broken clips) —
+see `functions/api/report.js`. By default those reports only save to
+*that visitor's own browser* (local storage), so you'd never see reports
+from anyone but yourself. To have every visitor's reports relayed to a
+Discord channel you control, so you can review them later no matter who
+flagged the clip:
+
+1. In a Discord server you control, go to a channel -> **Edit Channel ->
+   Integrations -> Webhooks -> New Webhook**, then **Copy Webhook URL**.
+   (Discord webhooks only work in server channels, not DMs — a private
+   server with just you in it works fine.)
+2. In the Cloudflare dashboard: your Pages project -> **Settings ->
+   Environment variables** -> add a variable named `DISCORD_WEBHOOK_URL`,
+   paste the URL as its value, and toggle **Encrypt** so it's stored as a
+   secret rather than plain text. Do this for the Production environment
+   (and Preview too, if you use preview deployments).
+3. Push/redeploy. `functions/api/report.js` — a small Cloudflare Pages
+   Function that ships in this repo — picks up the new environment
+   variable automatically; no other setup needed.
+
+Until `DISCORD_WEBHOOK_URL` is set, reports still work exactly as before
+(saved locally, visible in the "Reported clips" panel to whoever flagged
+them) — the site just doesn't have anywhere else to relay them yet.
+
+The webhook URL itself never touches the browser — it's only ever read
+server-side inside the Function — so nobody viewing page source can grab
+it and spam your channel.
+
 ## Notes
 
 - No per-file size cap other than whatever Cloudflare Pages enforces (at
