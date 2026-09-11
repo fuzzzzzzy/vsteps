@@ -1053,6 +1053,12 @@
       $("practiceUnavailable").hidden = true;
       $("practiceEmpty").hidden = true;
       $("practiceMain").hidden = false;
+      // The scope canvas is sized from its (until now hidden) parent's
+      // layout box, which reports 0×0 while hidden — the initial
+      // sizeCanvas() call at startup runs before clips ever load, so it
+      // always measured a hidden, zero-size panel and locked the canvas at
+      // 1×1px forever. Re-measure now that the panel is actually visible.
+      sizeCanvas();
       if (!currentClip || !clips.some(function (c) { return c.id === currentClip.id; })) {
         pickNextClip();
       } else {
