@@ -233,6 +233,23 @@
   footer a { color: var(--accent); }
   footer code { font-family: "IBM Plex Mono", monospace; }
 
+  /* ---- clip reporting ---- */
+  .report-panel { margin-top: 14px; padding: 12px; border: 1px solid var(--border); background: var(--surface-2); }
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55);
+    display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+  }
+  .modal-box {
+    background: var(--bg); border: 1px solid var(--border); padding: 20px;
+    max-width: 560px; width: 100%; max-height: 82vh; overflow-y: auto;
+  }
+  .report-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+  .report-row:last-child { border-bottom: none; }
+  .report-row .meta { color: var(--text-dim); font-size: 0.74rem; margin-top: 2px; }
+  .report-row .tag-auto { color: var(--warn); }
+  .report-row .remove-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.95rem; flex: none; padding: 0 2px; }
+  .report-row .remove-btn:hover { color: var(--danger); }
+
   @media (max-width: 460px) {
     .stat-hud { grid-template-columns: repeat(3, 1fr); }
     .mc-grid .mc-btn { flex-basis: 100%; max-width: 100%; }
@@ -282,8 +299,20 @@
         <div class="player-controls">
           <button class="btn btn-primary" id="playBtn">▶ Play Clip</button>
           <button class="btn btn-ghost" id="replayBtn" disabled>↻ Replay</button>
+          <button class="btn btn-ghost" id="reportBtn" disabled title="Flag a problem with this clip">🚩 Report</button>
           <span class="idle-ping" id="idlePing" aria-hidden="true"></span>
           <span class="dim mono" id="clipCounter" style="margin-left:auto; font-size:0.78rem;"></span>
+        </div>
+        <div class="report-panel" id="reportPanel" hidden>
+          <div class="dim" style="font-size:0.76rem; margin-bottom:8px;">What's wrong with this clip?</div>
+          <div class="chip-grid" id="reportReasons">
+            <button type="button" class="chip" data-reason="silent">No audio / silent</button>
+            <button type="button" class="chip" data-reason="wrong-agent">Wrong agent tag</button>
+            <button type="button" class="chip" data-reason="wrong-surface">Wrong surface tag</button>
+            <button type="button" class="chip" data-reason="bad-cut">Bad cut / noise</button>
+            <button type="button" class="chip" data-reason="other">Other</button>
+          </div>
+          <button type="button" class="link-btn" id="cancelReportBtn" style="margin-top:8px;">cancel</button>
         </div>
       </div>
 
@@ -364,11 +393,30 @@
   <footer>
     vSteps — add clips by dropping audio into <code>clips/</code> and listing them in <code>clips.json</code>.
     <div style="margin-top:6px;">
+      <button type="button" class="link-btn" id="viewReportsBtn">🚩 Reported clips (<span id="reportCount">0</span>)</button>
+    </div>
+    <div style="margin-top:6px;">
       <!-- Ko-fi link placeholder: set href to your Ko-fi (or Buy Me a Coffee) page and
            delete the "hidden" attribute below to show it, e.g. href="https://ko-fi.com/yourname" -->
       <a href="#" id="supportLink" hidden>☕ Support this project</a>
     </div>
   </footer>
+</div>
+
+<div class="modal-overlay" id="reportsModalOverlay" hidden>
+  <div class="modal-box">
+    <div class="panel-head">
+      <h2 style="font-size:1rem;">Reported clips</h2>
+      <button type="button" class="link-btn" id="closeReportsBtn">close ✕</button>
+    </div>
+    <div class="dim" id="reportsEmptyMsg" style="padding:12px 0;">No reports yet — clips you flag with 🚩 Report (or that fail to load, or play back silent) show up here.</div>
+    <div id="reportsList"></div>
+    <textarea id="reportsTextarea" readonly hidden style="width:100%; min-height:90px; margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:0.76rem; background:var(--surface-2); color:var(--text); border:1px solid var(--border); padding:8px;"></textarea>
+    <div style="display:flex; gap:10px; margin-top:14px; justify-content:flex-end;">
+      <button type="button" class="btn btn-sm" id="copyReportsBtn">Copy list</button>
+      <button type="button" class="btn btn-sm btn-ghost" id="clearReportsBtn">Clear all</button>
+    </div>
+  </div>
 </div>
 
 <audio id="clipPlayer" preload="none" style="display:none;"></audio>
@@ -463,6 +511,120 @@
   var optionCount = clampInt(safeLocalGet("vsteps.optionCount") || 5, 2, 12);
   var pendingAgent = null, pendingAgentBtn = null;
   var pendingSurface = null, pendingSurfaceBtn = null;
+  var peakLevelThisPlay = 0;
+  var clipBeingPlayed = null;
+
+  // ================= clip reporting =================
+  var REPORT_REASON_LABELS = {
+    "silent": "No audio / silent",
+    "wrong-agent": "Wrong agent tag",
+    "wrong-surface": "Wrong surface tag",
+    "bad-cut": "Bad cut / noise",
+    "load-error": "Failed to load (auto-detected)",
+    "silent-auto": "Played back silent (auto-detected)",
+    "other": "Other"
+  };
+
+  function loadReports() {
+    try {
+      var raw = safeLocalGet("vsteps.reports");
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveReports(list) {
+    safeLocalSet("vsteps.reports", JSON.stringify(list));
+    updateReportBadge();
+  }
+
+  function updateReportBadge() {
+    var el = $("reportCount");
+    if (el) el.textContent = String(loadReports().length);
+  }
+
+  function addReport(clip, reason, auto) {
+    if (!clip) return;
+    var list = loadReports();
+    var existing = list.filter(function (r) {
+      return r.filename === clip.filename && r.reason === reason;
+    })[0];
+    if (existing) {
+      existing.count = (existing.count || 1) + 1;
+      existing.lastSeen = Date.now();
+    } else {
+      list.push({
+        filename: clip.filename,
+        agent: clip.agent,
+        surface: clip.surface,
+        reason: reason,
+        auto: !!auto,
+        count: 1,
+        firstSeen: Date.now(),
+        lastSeen: Date.now()
+      });
+    }
+    saveReports(list);
+  }
+
+  function removeReport(index) {
+    var list = loadReports();
+    list.splice(index, 1);
+    saveReports(list);
+    renderReportsList();
+  }
+
+  function formatReportTimestamp(ms) {
+    try { return new Date(ms).toLocaleString(); } catch (e) { return ""; }
+  }
+
+  function reportsAsText(list) {
+    if (list.length === 0) return "No reported clips.";
+    return list.map(function (r) {
+      var label = REPORT_REASON_LABELS[r.reason] || r.reason;
+      var count = r.count > 1 ? " (x" + r.count + ")" : "";
+      return r.filename + " — " + r.agent + " / " + r.surface + " — " + label + count;
+    }).join("\n");
+  }
+
+  function renderReportsList() {
+    var list = loadReports();
+    list.sort(function (a, b) { return (b.lastSeen || 0) - (a.lastSeen || 0); });
+    var wrap = $("reportsList");
+    wrap.innerHTML = "";
+    $("reportsEmptyMsg").hidden = list.length > 0;
+    list.forEach(function (r, i) {
+      var row = document.createElement("div");
+      row.className = "report-row";
+      var label = REPORT_REASON_LABELS[r.reason] || r.reason;
+      var countTxt = r.count > 1 ? " ×" + r.count : "";
+      var autoTxt = r.auto ? '<span class="tag-auto">auto</span> · ' : "";
+      row.innerHTML =
+        '<div>' +
+          '<div class="mono">' + escapeHtml(r.filename) + '</div>' +
+          '<div class="meta">' + escapeHtml(r.agent) + ' / ' + escapeHtml(r.surface) + ' — ' + autoTxt + escapeHtml(label) + countTxt + '</div>' +
+          '<div class="meta">last flagged ' + escapeHtml(formatReportTimestamp(r.lastSeen)) + '</div>' +
+        '</div>';
+      var removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "remove-btn";
+      removeBtn.title = "Dismiss this report";
+      removeBtn.textContent = "✕";
+      removeBtn.addEventListener("click", function () { removeReport(i); });
+      row.appendChild(removeBtn);
+      wrap.appendChild(row);
+    });
+    var textarea = $("reportsTextarea");
+    textarea.value = reportsAsText(list);
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
 
   // ================= shared rendering =================
   function renderStats() {
@@ -725,12 +887,14 @@
     $("feedback").className = "feedback mono";
     $("feedback").textContent = "";
     $("nextBtn").hidden = true;
+    $("reportPanel").hidden = true;
     updateClipCounter();
     var pool = filteredClips();
     if (pool.length === 0) {
       currentClip = null;
       $("playBtn").disabled = true;
       $("replayBtn").disabled = true;
+      $("reportBtn").disabled = true;
       renderNoPoolMessage("Select at least one agent above to start.");
       return;
     }
@@ -744,6 +908,7 @@
     lastClipId = chosen.id;
     $("playBtn").disabled = false;
     $("replayBtn").disabled = true;
+    $("reportBtn").disabled = false;
     $("scopeStatus").textContent = "ready";
     rebuildAnswerUI();
   }
@@ -769,6 +934,8 @@
   function playCurrentClip() {
     if (!currentClip) return;
     var clip = currentClip;
+    clipBeingPlayed = clip;
+    peakLevelThisPlay = 0;
     $("playBtn").disabled = true;
     // Static files served directly by the host — no fetch/decode needed,
     // just point the <audio> element at clips/<filename>.
@@ -788,11 +955,19 @@
     playing = false;
     $("idlePing").classList.remove("playing");
     $("scopeStatus").textContent = "ready";
+    // If the visualizer had a signal to read (analyser available) and it
+    // never rose above a near-silent floor for the whole clip, the file is
+    // very likely broken/empty — flag it automatically so it doesn't just
+    // slip by unnoticed.
+    if (analyser && clipBeingPlayed && peakLevelThisPlay < 0.02) {
+      addReport(clipBeingPlayed, "silent-auto", true);
+    }
   });
 
   audioEl.addEventListener("error", function () {
     if (!currentClip || !audioEl.src) return;
     console.warn("clip failed to load, skipping:", currentClip.filename);
+    addReport(currentClip, "load-error", true);
     playing = false;
     $("idlePing").classList.remove("playing");
     $("playBtn").disabled = false;
@@ -826,6 +1001,9 @@
         for (var j = i * bucket; j < Math.min(freqData.length, (i + 1) * bucket); j++) { sum += freqData[j]; c++; }
         values[i] = c ? (sum / c) / 255 : 0;
       }
+      var frameMax = 0;
+      for (var vi = 0; vi < values.length; vi++) { if (values[vi] > frameMax) frameMax = values[vi]; }
+      if (frameMax > peakLevelThisPlay) peakLevelThisPlay = frameMax;
     } else if (!reducedMotion) {
       var t = Date.now() / 1000;
       for (var i2 = 0; i2 < barCount; i2++) values[i2] = 0.08 + 0.05 * Math.sin(t * 1.4 + i2 * 0.5);
@@ -952,6 +1130,65 @@
       renderSurfaceChips(); updateClipCounter(); pickNextClip();
     });
 
+    $("reportBtn").addEventListener("click", function () {
+      $("reportPanel").hidden = !$("reportPanel").hidden;
+    });
+    $("cancelReportBtn").addEventListener("click", function () {
+      $("reportPanel").hidden = true;
+    });
+    document.querySelectorAll("#reportReasons button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (!currentClip) return;
+        addReport(currentClip, btn.dataset.reason, false);
+        $("reportPanel").hidden = true;
+        $("reportBtn").textContent = "✓ Reported";
+        setTimeout(function () { $("reportBtn").textContent = "🚩 Report"; }, 1500);
+      });
+    });
+
+    $("viewReportsBtn").addEventListener("click", function () {
+      renderReportsList();
+      $("reportsModalOverlay").hidden = false;
+    });
+    $("closeReportsBtn").addEventListener("click", function () {
+      $("reportsModalOverlay").hidden = true;
+    });
+    $("reportsModalOverlay").addEventListener("click", function (e) {
+      if (e.target === $("reportsModalOverlay")) $("reportsModalOverlay").hidden = true;
+    });
+    $("copyReportsBtn").addEventListener("click", function () {
+      var textarea = $("reportsTextarea");
+      textarea.hidden = false;
+      textarea.focus();
+      textarea.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      textarea.hidden = true;
+      if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textarea.value).catch(function () {});
+      }
+      var btn = $("copyReportsBtn");
+      var original = btn.textContent;
+      btn.textContent = "Copied ✓";
+      setTimeout(function () { btn.textContent = original; }, 1500);
+    });
+    var clearConfirmPending = false;
+    $("clearReportsBtn").addEventListener("click", function () {
+      if (!clearConfirmPending) {
+        clearConfirmPending = true;
+        this.textContent = "Click again to confirm";
+        setTimeout(function () {
+          clearConfirmPending = false;
+          $("clearReportsBtn").textContent = "Clear all";
+        }, 4000);
+        return;
+      }
+      clearConfirmPending = false;
+      saveReports([]);
+      renderReportsList();
+      this.textContent = "Clear all";
+    });
+
     window.addEventListener("resize", sizeCanvas);
   }
 
@@ -969,6 +1206,7 @@
   $("optionCountInput").value = optionCount;
 
   renderStats();
+  updateReportBadge();
   sizeCanvas();
   wireEvents();
   requestAnimationFrame(drawScope);
