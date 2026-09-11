@@ -534,8 +534,10 @@
     var slug = normalize(name);
     if (slug && slug !== normalize(name + "_icon")) bases.push(slug);
     // "/" can't appear in a filename (e.g. KAY/O), so try the common
-    // stand-ins for that one case too.
+    // stand-ins for that one case too — including the plain readable
+    // spelling ("Kayo"), which is how these actually got named.
     if (name.indexOf("/") !== -1) {
+      if (slug) bases.push(slug.charAt(0).toUpperCase() + slug.slice(1) + "_icon"); // Kayo_icon
       bases.push(name.replace(/\//g, "-") + "_icon");   // KAY-O_icon
       bases.push(name.replace(/\//g, "_") + "_icon");   // KAY_O_icon
       bases.push(name.replace(/\//g, "") + "_icon");    // KAYO_icon
