@@ -419,6 +419,17 @@ against anything yet).
   the local identity and the leaderboard panel explains why the next
   time it's opened, rather than just quietly dropping back to the join
   form.
+- New display names are checked against a small profanity/impersonation
+  filter (`BLOCKED_SUBSTRINGS` in `functions/api/identity.js`, duplicated
+  in `functions/api/score.js` as a fallback — keep both in sync if you
+  edit one) before they're ever saved, so they can't show up on the
+  public leaderboard at all. It lowercases the name, normalizes common
+  leetspeak substitutions (`0`→o, `1`→i, `3`→e, etc.), and strips
+  punctuation/spaces before matching, so simple evasion like `f.u.c.k` or
+  `sh1t` still gets caught. It's a short, deliberately non-exhaustive
+  list — add more words as you see fit. An existing name is never
+  re-checked (only brand-new ones), so this can't retroactively affect
+  anyone already on the board.
 
 ## Notes
 

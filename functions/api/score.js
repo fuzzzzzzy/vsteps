@@ -28,6 +28,31 @@ const MAX_NAME_LEN = 24;
 const MAX_PASSPHRASE_LEN = 64;
 const MAX_STREAK = 100000;
 
+// Same filter as functions/api/identity.js, kept here too as a fallback in
+// case a new name is ever created by a request that skips /api/identity
+// (identity.js is the normal front door - see its comment for details).
+// Keep both lists in sync if you edit one.
+const BLOCKED_SUBSTRINGS = [
+  "fuck", "shit", "bitch", "cunt", "asshole", "nigger", "nigga", "faggot",
+  "retard", "whore", "slut", "rape", "nazi", "hitler",
+  "valostep", "riotgames", "admin", "moderator", "cloudflare",
+];
+
+function isNameBlocked(rawName) {
+  const normalized = rawName
+    .toLowerCase()
+    .replace(/0/g, "o")
+    .replace(/1/g, "i")
+    .replace(/3/g, "e")
+    .replace(/4/g, "a")
+    .replace(/5/g, "s")
+    .replace(/7/g, "t")
+    .replace(/[$]/g, "s")
+    .replace(/@/g, "a")
+    .replace(/[^a-z]/g, "");
+  return BLOCKED_SUBSTRINGS.some((word) => normalized.includes(word));
+}
+
 async function sha256Hex(text) {
   const data = new TextEncoder().encode(text);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -89,6 +114,15 @@ export async function onRequestPost(context) {
       .bind(rawName, correct ? 1 : 0, streak, now, nameKey)
       .run();
   } else {
+    if (isNameBlocked(rawName)) {
+      // Normally caught by /api/identity before this row ever gets
+      // created - this only fires if something posts straight to
+      // /api/score for a name that's never been claimed.
+      return new Response(
+        JSON.stringify({ error: "blocked_name" }),
+        { status: 400, headers: { "content-type": "application/json" } }
+      );
+    }
     await env.DB
       .prepare(
         "INSERT INTO players (name_key, display_name, passphrase_hash, correct, total, best_streak, created_at, updated_at) " +

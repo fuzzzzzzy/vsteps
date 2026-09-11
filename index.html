@@ -486,7 +486,7 @@
       <a href="#" id="supportLink" hidden>☕ Support this project</a>
     </div>
     <div class="dim" style="margin-top:10px; font-size:0.74rem;">
-      practice tool. Not affiliated or endorsed by Riot Games.
+      This is a practice tool. Not affiliated or endorsed by Riot Games.
     </div>
   </footer>
 </div>
@@ -601,22 +601,28 @@
   var ICON_EXTENSIONS = ["webp", "png", "jpg", "jpeg", "svg"];
 
   function iconBaseCandidates(name) {
+    var slug = normalize(name);
+    if (name.indexOf("/") !== -1) {
+      // "/" can't appear in a filename (e.g. KAY/O), so there's no single
+      // "obvious" convention here the way there is for every other agent —
+      // try the stand-ins people actually use, most-likely-first (the
+      // slash simply dropped, e.g. KAYO_icon, is how these actually got
+      // named), so the real file is usually the very first request instead
+      // of the last of ~30 (one per convention x extension) — that gap was
+      // slow enough on a real connection to look like a broken icon.
+      var bases = [name.replace(/\//g, "") + "_icon"]; // KAYO_icon
+      if (slug) bases.push(slug.charAt(0).toUpperCase() + slug.slice(1) + "_icon"); // Kayo_icon
+      if (slug) bases.push(slug); // kayo
+      bases.push(name.replace(/\//g, "-") + "_icon");   // KAY-O_icon
+      bases.push(name.replace(/\//g, "_") + "_icon");   // KAY_O_icon
+      return bases;
+    }
     // Primary convention: "<AgentName>_icon" (exact roster spelling),
     // e.g. Jett_icon.webp — matches how these were actually saved.
     var bases = [name + "_icon"];
     // Also accept the plain lowercase slug (e.g. "jett") for anyone using
     // that convention instead.
-    var slug = normalize(name);
     if (slug && slug !== normalize(name + "_icon")) bases.push(slug);
-    // "/" can't appear in a filename (e.g. KAY/O), so try the common
-    // stand-ins for that one case too — including the plain readable
-    // spelling ("Kayo"), which is how these actually got named.
-    if (name.indexOf("/") !== -1) {
-      if (slug) bases.push(slug.charAt(0).toUpperCase() + slug.slice(1) + "_icon"); // Kayo_icon
-      bases.push(name.replace(/\//g, "-") + "_icon");   // KAY-O_icon
-      bases.push(name.replace(/\//g, "_") + "_icon");   // KAY_O_icon
-      bases.push(name.replace(/\//g, "") + "_icon");    // KAYO_icon
-    }
     return bases;
   }
 
@@ -1657,9 +1663,21 @@
           submitBtn.disabled = false;
           return;
         }
-        // Any other response (200 = verified/claimed, or a non-409 error
-        // such as the leaderboard backend not being set up yet) falls
-        // through to joining locally, so the rest of the site keeps
+        if (r.status === 400) {
+          // Covers both a malformed request and the server-side name
+          // filter (functions/api/identity.js) rejecting the name - either
+          // way, falling through to joinLocally() would be wrong here.
+          return r.json().catch(function () { return {}; }).then(function (data) {
+            msg.textContent = data && data.error === "blocked_name"
+              ? "That name isn't allowed — try something else."
+              : "Something about that name or passphrase didn't work — try again.";
+            msg.className = "lb-msg err";
+            submitBtn.disabled = false;
+          });
+        }
+        // Any other response (200 = verified/claimed, or a non-400/409
+        // error such as the leaderboard backend not being set up yet)
+        // falls through to joining locally, so the rest of the site keeps
         // working even before the D1 database is configured.
         joinLocally();
       }).catch(function () {
