@@ -110,7 +110,10 @@
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand-logo { width: 44px; height: 44px; flex: none; border-radius: 10px; background: #0E8A79; padding: 8px; box-sizing: border-box; }
   header h1 { font-size: clamp(1.7rem, 1.35rem + 1.6vw, 2.3rem); }
-  header p.tagline { margin: 0; color: var(--text-dim); font-size: 0.95rem; max-width: 46ch; }
+  header p.tagline { margin: 0; color: var(--text-dim); font-size: 0.95rem; }
+  .header-actions { margin-top: 2px; font-size: 0.82rem; }
+  .header-actions a { color: var(--accent); text-decoration: none; }
+  .header-actions a:hover { text-decoration: underline; }
 
   /* ---- shared panel shape ---- */
   .panel {
@@ -344,6 +347,11 @@
       </div>
     </div>
     <p class="tagline">Play a tagged footstep clip and call the agent. The same way you'd have to do it in-game.</p>
+    <div class="header-actions">
+      <button type="button" class="link-btn" id="viewLeaderboardBtn">🏆 Leaderboard</button>
+      &nbsp;·&nbsp;
+      <a href="https://ko-fi.com/fuzzzzy" id="supportLink" target="_blank" rel="noopener">☕ Support this project</a>
+    </div>
   </header>
 
   <section id="viewPractice">
@@ -476,14 +484,7 @@
 
   <footer>
     <div>
-      <button type="button" class="link-btn" id="viewLeaderboardBtn">🏆 Leaderboard</button>
-      &nbsp;·&nbsp;
       <button type="button" class="link-btn" id="viewReportsBtn">🚩 Reported clips (<span id="reportCount">0</span>)</button>
-    </div>
-    <div style="margin-top:6px;">
-      <!-- Ko-fi link placeholder: set href to your Ko-fi (or Buy Me a Coffee) page and
-           delete the "hidden" attribute below to show it, e.g. href="https://ko-fi.com/yourname" -->
-      <a href="#" id="supportLink" hidden>☕ Support this project</a>
     </div>
     <div class="dim" style="margin-top:10px; font-size:0.74rem;">
       This is a practice tool. Not affiliated or endorsed by Riot Games.
