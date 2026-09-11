@@ -335,7 +335,7 @@
         <div class="panel-head">
           <h2 style="font-size:1rem;">Answer mode</h2>
           <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
-            <button type="button" class="chip" id="requireSurfaceToggle" aria-pressed="false">+ Surface</button>
+            <button type="button" class="chip" id="requireSurfaceToggle" aria-pressed="false" hidden>+ Surface</button>
             <div class="segmented" id="modeToggle">
               <button aria-pressed="true" data-mode="mc">Multiple choice</button>
               <button aria-pressed="false" data-mode="type">Type answer</button>
@@ -524,7 +524,12 @@
   var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   var storedVolume = safeLocalGet("vsteps.volume");
   var volume = storedVolume === null ? 80 : clampInt(storedVolume, 0, 100);
-  var requireSurface = safeLocalGet("vsteps.requireSurface") === "1";
+  // Surface mode is temporarily disabled site-wide (hidden toggle below,
+  // forced off here) — all the surface-quiz code is left intact, this is
+  // just switched off for now. To bring it back: remove `hidden` from
+  // #requireSurfaceToggle below, and restore the line under it to
+  // `var requireSurface = safeLocalGet("vsteps.requireSurface") === "1";`
+  var requireSurface = false;
   var optionCount = clampInt(safeLocalGet("vsteps.optionCount") || 5, 2, 12);
   var pendingAgent = null, pendingAgentBtn = null;
   var pendingSurface = null, pendingSurfaceBtn = null;
@@ -915,9 +920,19 @@
       renderNoPoolMessage("Select at least one agent above to start.");
       return;
     }
-    var candidates = pool;
-    if (pool.length > 1 && lastClipId) {
-      var narrowed = pool.filter(function (c) { return c.id !== lastClipId; });
+    // Pick the agent first, then a clip within that agent — picking
+    // straight from the flat clip pool would make agents with more
+    // recorded clips come up more often than ones with fewer.
+    var byAgent = {};
+    pool.forEach(function (c) {
+      (byAgent[c.agent] = byAgent[c.agent] || []).push(c);
+    });
+    var agentsInPool = Object.keys(byAgent);
+    var agent = agentsInPool[Math.floor(Math.random() * agentsInPool.length)];
+    var group = byAgent[agent];
+    var candidates = group;
+    if (group.length > 1 && lastClipId) {
+      var narrowed = group.filter(function (c) { return c.id !== lastClipId; });
       if (narrowed.length > 0) candidates = narrowed;
     }
     var chosen = candidates[Math.floor(Math.random() * candidates.length)];

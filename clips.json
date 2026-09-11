@@ -2,6 +2,11 @@
   {
     "agent": "Astra",
     "surface": "Concrete",
+    "filename": "astra_concrete_01.mp3"
+  },
+  {
+    "agent": "Astra",
+    "surface": "Concrete",
     "filename": "astra_concrete_02.mp3"
   },
   {
@@ -27,12 +32,27 @@
   {
     "agent": "Breach",
     "surface": "Concrete",
+    "filename": "breach_concrete_02.mp3"
+  },
+  {
+    "agent": "Breach",
+    "surface": "Concrete",
     "filename": "breach_concrete_03.mp3"
   },
   {
     "agent": "Breach",
     "surface": "Concrete",
     "filename": "breach_concrete_04.mp3"
+  },
+  {
+    "agent": "Breach",
+    "surface": "Concrete",
+    "filename": "breach_concrete_05.mp3"
+  },
+  {
+    "agent": "Breach",
+    "surface": "Concrete",
+    "filename": "breach_concrete_06.mp3"
   },
   {
     "agent": "Brimstone",
@@ -50,6 +70,21 @@
     "filename": "brimstone_concrete_03.mp3"
   },
   {
+    "agent": "Brimstone",
+    "surface": "Concrete",
+    "filename": "brimstone_concrete_04.mp3"
+  },
+  {
+    "agent": "Brimstone",
+    "surface": "Concrete",
+    "filename": "brimstone_concrete_05.mp3"
+  },
+  {
+    "agent": "Brimstone",
+    "surface": "Concrete",
+    "filename": "brimstone_concrete_06.mp3"
+  },
+  {
     "agent": "Chamber",
     "surface": "Concrete",
     "filename": "chamber_concrete_01.mp3"
@@ -58,6 +93,26 @@
     "agent": "Chamber",
     "surface": "Concrete",
     "filename": "chamber_concrete_02.mp3"
+  },
+  {
+    "agent": "Chamber",
+    "surface": "Concrete",
+    "filename": "chamber_concrete_03.mp3"
+  },
+  {
+    "agent": "Chamber",
+    "surface": "Concrete",
+    "filename": "chamber_concrete_04.mp3"
+  },
+  {
+    "agent": "Chamber",
+    "surface": "Concrete",
+    "filename": "chamber_concrete_05.mp3"
+  },
+  {
+    "agent": "Chamber",
+    "surface": "Concrete",
+    "filename": "chamber_concrete_06.mp3"
   },
   {
     "agent": "Clove",
@@ -137,17 +192,17 @@
   {
     "agent": "Deadlock",
     "surface": "Concrete",
+    "filename": "deadlock_concrete_04.mp3"
+  },
+  {
+    "agent": "Deadlock",
+    "surface": "Concrete",
     "filename": "deadlock_concrete_05.mp3"
   },
   {
     "agent": "Deadlock",
     "surface": "Concrete",
     "filename": "deadlock_concrete_06.mp3"
-  },
-  {
-    "agent": "Deadlock",
-    "surface": "Concrete",
-    "filename": "deadlock_concrete_07.mp3"
   },
   {
     "agent": "Fade",
@@ -235,11 +290,6 @@
     "filename": "harbor_concrete_05.mp3"
   },
   {
-    "agent": "Harbor",
-    "surface": "Concrete",
-    "filename": "harbor_concrete_06.mp3"
-  },
-  {
     "agent": "Iso",
     "surface": "Concrete",
     "filename": "iso_concrete_01.mp3"
@@ -275,11 +325,6 @@
     "filename": "iso_concrete_07.mp3"
   },
   {
-    "agent": "Iso",
-    "surface": "Concrete",
-    "filename": "iso_concrete_08.mp3"
-  },
-  {
     "agent": "Jett",
     "surface": "Concrete",
     "filename": "jett_concrete_01.mp3"
@@ -313,11 +358,6 @@
     "agent": "Jett",
     "surface": "Concrete",
     "filename": "jett_concrete_07.mp3"
-  },
-  {
-    "agent": "Jett",
-    "surface": "Concrete",
-    "filename": "jett_concrete_08.mp3"
   },
   {
     "agent": "KAY/O",
@@ -385,13 +425,483 @@
     "filename": "killjoy_concrete_06.mp3"
   },
   {
-    "agent": "Killjoy",
+    "agent": "Miks",
     "surface": "Concrete",
-    "filename": "killjoy_concrete_07.mp3"
+    "filename": "miks_concrete_01.mp3"
   },
   {
-    "agent": "Killjoy",
+    "agent": "Miks",
     "surface": "Concrete",
-    "filename": "killjoy_concrete_08.mp3"
+    "filename": "miks_concrete_02.mp3"
+  },
+  {
+    "agent": "Miks",
+    "surface": "Concrete",
+    "filename": "miks_concrete_03.mp3"
+  },
+  {
+    "agent": "Miks",
+    "surface": "Concrete",
+    "filename": "miks_concrete_04.mp3"
+  },
+  {
+    "agent": "Miks",
+    "surface": "Concrete",
+    "filename": "miks_concrete_05.mp3"
+  },
+  {
+    "agent": "Neon",
+    "surface": "Concrete",
+    "filename": "neon_concrete_01.mp3"
+  },
+  {
+    "agent": "Neon",
+    "surface": "Concrete",
+    "filename": "neon_concrete_02.mp3"
+  },
+  {
+    "agent": "Neon",
+    "surface": "Concrete",
+    "filename": "neon_concrete_03.mp3"
+  },
+  {
+    "agent": "Neon",
+    "surface": "Concrete",
+    "filename": "neon_concrete_04.mp3"
+  },
+  {
+    "agent": "Neon",
+    "surface": "Concrete",
+    "filename": "neon_concrete_05.mp3"
+  },
+  {
+    "agent": "Omen",
+    "surface": "Concrete",
+    "filename": "omen_concrete_01.mp3"
+  },
+  {
+    "agent": "Omen",
+    "surface": "Concrete",
+    "filename": "omen_concrete_02.mp3"
+  },
+  {
+    "agent": "Omen",
+    "surface": "Concrete",
+    "filename": "omen_concrete_03.mp3"
+  },
+  {
+    "agent": "Omen",
+    "surface": "Concrete",
+    "filename": "omen_concrete_04.mp3"
+  },
+  {
+    "agent": "Omen",
+    "surface": "Concrete",
+    "filename": "omen_concrete_05.mp3"
+  },
+  {
+    "agent": "Omen",
+    "surface": "Concrete",
+    "filename": "omen_concrete_06.mp3"
+  },
+  {
+    "agent": "Omen",
+    "surface": "Concrete",
+    "filename": "omen_concrete_07.mp3"
+  },
+  {
+    "agent": "Phoenix",
+    "surface": "Concrete",
+    "filename": "phoenix_concrete_01.mp3"
+  },
+  {
+    "agent": "Phoenix",
+    "surface": "Concrete",
+    "filename": "phoenix_concrete_02.mp3"
+  },
+  {
+    "agent": "Phoenix",
+    "surface": "Concrete",
+    "filename": "phoenix_concrete_03.mp3"
+  },
+  {
+    "agent": "Phoenix",
+    "surface": "Concrete",
+    "filename": "phoenix_concrete_04.mp3"
+  },
+  {
+    "agent": "Phoenix",
+    "surface": "Concrete",
+    "filename": "phoenix_concrete_05.mp3"
+  },
+  {
+    "agent": "Raze",
+    "surface": "Concrete",
+    "filename": "raze_concrete_01.mp3"
+  },
+  {
+    "agent": "Raze",
+    "surface": "Concrete",
+    "filename": "raze_concrete_02.mp3"
+  },
+  {
+    "agent": "Raze",
+    "surface": "Concrete",
+    "filename": "raze_concrete_03.mp3"
+  },
+  {
+    "agent": "Raze",
+    "surface": "Concrete",
+    "filename": "raze_concrete_04.mp3"
+  },
+  {
+    "agent": "Raze",
+    "surface": "Concrete",
+    "filename": "raze_concrete_05.mp3"
+  },
+  {
+    "agent": "Raze",
+    "surface": "Concrete",
+    "filename": "raze_concrete_06.mp3"
+  },
+  {
+    "agent": "Raze",
+    "surface": "Concrete",
+    "filename": "raze_concrete_07.mp3"
+  },
+  {
+    "agent": "Reyna",
+    "surface": "Concrete",
+    "filename": "reyna_concrete_01.mp3"
+  },
+  {
+    "agent": "Reyna",
+    "surface": "Concrete",
+    "filename": "reyna_concrete_02.mp3"
+  },
+  {
+    "agent": "Reyna",
+    "surface": "Concrete",
+    "filename": "reyna_concrete_03.mp3"
+  },
+  {
+    "agent": "Reyna",
+    "surface": "Concrete",
+    "filename": "reyna_concrete_04.mp3"
+  },
+  {
+    "agent": "Reyna",
+    "surface": "Concrete",
+    "filename": "reyna_concrete_05.mp3"
+  },
+  {
+    "agent": "Reyna",
+    "surface": "Concrete",
+    "filename": "reyna_concrete_06.mp3"
+  },
+  {
+    "agent": "Reyna",
+    "surface": "Concrete",
+    "filename": "reyna_concrete_07.mp3"
+  },
+  {
+    "agent": "Sage",
+    "surface": "Concrete",
+    "filename": "sage_concrete_01.mp3"
+  },
+  {
+    "agent": "Sage",
+    "surface": "Concrete",
+    "filename": "sage_concrete_02.mp3"
+  },
+  {
+    "agent": "Sage",
+    "surface": "Concrete",
+    "filename": "sage_concrete_03.mp3"
+  },
+  {
+    "agent": "Sage",
+    "surface": "Concrete",
+    "filename": "sage_concrete_04.mp3"
+  },
+  {
+    "agent": "Sage",
+    "surface": "Concrete",
+    "filename": "sage_concrete_05.mp3"
+  },
+  {
+    "agent": "Sage",
+    "surface": "Concrete",
+    "filename": "sage_concrete_06.mp3"
+  },
+  {
+    "agent": "Skye",
+    "surface": "Concrete",
+    "filename": "skye_concrete_01.mp3"
+  },
+  {
+    "agent": "Skye",
+    "surface": "Concrete",
+    "filename": "skye_concrete_02.mp3"
+  },
+  {
+    "agent": "Skye",
+    "surface": "Concrete",
+    "filename": "skye_concrete_03.mp3"
+  },
+  {
+    "agent": "Skye",
+    "surface": "Concrete",
+    "filename": "skye_concrete_04.mp3"
+  },
+  {
+    "agent": "Skye",
+    "surface": "Concrete",
+    "filename": "skye_concrete_05.mp3"
+  },
+  {
+    "agent": "Skye",
+    "surface": "Concrete",
+    "filename": "skye_concrete_06.mp3"
+  },
+  {
+    "agent": "Sova",
+    "surface": "Concrete",
+    "filename": "sova_concrete_01.mp3"
+  },
+  {
+    "agent": "Sova",
+    "surface": "Concrete",
+    "filename": "sova_concrete_02.mp3"
+  },
+  {
+    "agent": "Sova",
+    "surface": "Concrete",
+    "filename": "sova_concrete_03.mp3"
+  },
+  {
+    "agent": "Sova",
+    "surface": "Concrete",
+    "filename": "sova_concrete_04.mp3"
+  },
+  {
+    "agent": "Sova",
+    "surface": "Concrete",
+    "filename": "sova_concrete_05.mp3"
+  },
+  {
+    "agent": "Sova",
+    "surface": "Concrete",
+    "filename": "sova_concrete_06.mp3"
+  },
+  {
+    "agent": "Tejo",
+    "surface": "Concrete",
+    "filename": "tejo_concrete_01.mp3"
+  },
+  {
+    "agent": "Tejo",
+    "surface": "Concrete",
+    "filename": "tejo_concrete_02.mp3"
+  },
+  {
+    "agent": "Tejo",
+    "surface": "Concrete",
+    "filename": "tejo_concrete_03.mp3"
+  },
+  {
+    "agent": "Tejo",
+    "surface": "Concrete",
+    "filename": "tejo_concrete_04.mp3"
+  },
+  {
+    "agent": "Tejo",
+    "surface": "Concrete",
+    "filename": "tejo_concrete_05.mp3"
+  },
+  {
+    "agent": "Tejo",
+    "surface": "Concrete",
+    "filename": "tejo_concrete_06.mp3"
+  },
+  {
+    "agent": "Tejo",
+    "surface": "Concrete",
+    "filename": "tejo_concrete_07.mp3"
+  },
+  {
+    "agent": "Veto",
+    "surface": "Concrete",
+    "filename": "veto_concrete_01.mp3"
+  },
+  {
+    "agent": "Veto",
+    "surface": "Concrete",
+    "filename": "veto_concrete_02.mp3"
+  },
+  {
+    "agent": "Veto",
+    "surface": "Concrete",
+    "filename": "veto_concrete_03.mp3"
+  },
+  {
+    "agent": "Veto",
+    "surface": "Concrete",
+    "filename": "veto_concrete_04.mp3"
+  },
+  {
+    "agent": "Veto",
+    "surface": "Concrete",
+    "filename": "veto_concrete_05.mp3"
+  },
+  {
+    "agent": "Veto",
+    "surface": "Concrete",
+    "filename": "veto_concrete_06.mp3"
+  },
+  {
+    "agent": "Veto",
+    "surface": "Concrete",
+    "filename": "veto_concrete_07.mp3"
+  },
+  {
+    "agent": "Viper",
+    "surface": "Concrete",
+    "filename": "viper_concrete_01.mp3"
+  },
+  {
+    "agent": "Viper",
+    "surface": "Concrete",
+    "filename": "viper_concrete_02.mp3"
+  },
+  {
+    "agent": "Viper",
+    "surface": "Concrete",
+    "filename": "viper_concrete_03.mp3"
+  },
+  {
+    "agent": "Viper",
+    "surface": "Concrete",
+    "filename": "viper_concrete_04.mp3"
+  },
+  {
+    "agent": "Viper",
+    "surface": "Concrete",
+    "filename": "viper_concrete_05.mp3"
+  },
+  {
+    "agent": "Viper",
+    "surface": "Concrete",
+    "filename": "viper_concrete_06.mp3"
+  },
+  {
+    "agent": "Viper",
+    "surface": "Concrete",
+    "filename": "viper_concrete_07.mp3"
+  },
+  {
+    "agent": "Vyse",
+    "surface": "Concrete",
+    "filename": "vyse_concrete_01.mp3"
+  },
+  {
+    "agent": "Vyse",
+    "surface": "Concrete",
+    "filename": "vyse_concrete_02.mp3"
+  },
+  {
+    "agent": "Vyse",
+    "surface": "Concrete",
+    "filename": "vyse_concrete_03.mp3"
+  },
+  {
+    "agent": "Vyse",
+    "surface": "Concrete",
+    "filename": "vyse_concrete_04.mp3"
+  },
+  {
+    "agent": "Vyse",
+    "surface": "Concrete",
+    "filename": "vyse_concrete_05.mp3"
+  },
+  {
+    "agent": "Vyse",
+    "surface": "Concrete",
+    "filename": "vyse_concrete_06.mp3"
+  },
+  {
+    "agent": "Vyse",
+    "surface": "Concrete",
+    "filename": "vyse_concrete_07.mp3"
+  },
+  {
+    "agent": "Waylay",
+    "surface": "Concrete",
+    "filename": "waylay_concrete_01.mp3"
+  },
+  {
+    "agent": "Waylay",
+    "surface": "Concrete",
+    "filename": "waylay_concrete_02.mp3"
+  },
+  {
+    "agent": "Waylay",
+    "surface": "Concrete",
+    "filename": "waylay_concrete_03.mp3"
+  },
+  {
+    "agent": "Waylay",
+    "surface": "Concrete",
+    "filename": "waylay_concrete_04.mp3"
+  },
+  {
+    "agent": "Waylay",
+    "surface": "Concrete",
+    "filename": "waylay_concrete_05.mp3"
+  },
+  {
+    "agent": "Waylay",
+    "surface": "Concrete",
+    "filename": "waylay_concrete_06.mp3"
+  },
+  {
+    "agent": "Waylay",
+    "surface": "Concrete",
+    "filename": "waylay_concrete_07.mp3"
+  },
+  {
+    "agent": "Yoru",
+    "surface": "Concrete",
+    "filename": "yoru_concrete_01.mp3"
+  },
+  {
+    "agent": "Yoru",
+    "surface": "Concrete",
+    "filename": "yoru_concrete_02.mp3"
+  },
+  {
+    "agent": "Yoru",
+    "surface": "Concrete",
+    "filename": "yoru_concrete_03.mp3"
+  },
+  {
+    "agent": "Yoru",
+    "surface": "Concrete",
+    "filename": "yoru_concrete_04.mp3"
+  },
+  {
+    "agent": "Yoru",
+    "surface": "Concrete",
+    "filename": "yoru_concrete_05.mp3"
+  },
+  {
+    "agent": "Yoru",
+    "surface": "Concrete",
+    "filename": "yoru_concrete_06.mp3"
+  },
+  {
+    "agent": "Yoru",
+    "surface": "Concrete",
+    "filename": "yoru_concrete_07.mp3"
   }
 ]
