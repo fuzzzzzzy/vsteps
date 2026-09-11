@@ -169,7 +169,12 @@
     display: inline-flex; align-items: center; justify-content: center; flex: none;
     border-radius: 50%; color: #fff; font-family: "IBM Plex Mono", monospace;
     font-weight: 600; letter-spacing: 0; line-height: 1;
+    position: relative; overflow: hidden;
   }
+  /* Sits on top of the monogram; if icons/<agent>.<ext> doesn't exist the
+     onerror handler below removes this element, leaving the monogram as
+     the visible fallback — see makeAgentBadge(). */
+  .agent-badge-icon { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
   /* ---- agent filter ---- */
   .filter-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -213,6 +218,24 @@
     font-family: "IBM Plex Mono", monospace; font-size: 0.92rem;
     padding: 12px 14px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
   }
+
+  /* Custom suggestions dropdown for #typeInput, replacing the native
+     <datalist> popup — a datalist shows its full unfiltered list the
+     moment the field is focused (looks bad and defeats the point of
+     "start typing to see matches"); this one stays hidden until there's
+     something to filter on. */
+  .type-input-wrap { position: relative; flex: 1; min-width: 160px; }
+  .type-input-wrap input[type="text"] { flex: unset; width: 100%; min-width: 0; }
+  .type-suggestions {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
+    background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+    max-height: 220px; overflow-y: auto;
+  }
+  .type-suggestion {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer;
+    font-family: "IBM Plex Mono", monospace; font-size: 0.88rem; color: var(--text);
+  }
+  .type-suggestion:hover { background: var(--surface-2); }
 
   .mini-input {
     width: 52px; font-family: "IBM Plex Mono", monospace; font-size: 0.82rem;
@@ -358,8 +381,10 @@
           </div>
         </div>
         <div id="typeArea" class="type-row" hidden>
-          <input type="text" id="typeInput" placeholder="Agent name…" autocomplete="off" list="agentSuggestions">
-          <datalist id="agentSuggestions"></datalist>
+          <div class="type-input-wrap">
+            <input type="text" id="typeInput" placeholder="Agent name…" autocomplete="off">
+            <div class="type-suggestions" id="typeSuggestions" hidden></div>
+          </div>
           <select id="typeSurfaceSelect" hidden>
             <option value="">Surface…</option>
           </select>
@@ -491,6 +516,43 @@
     return Math.round((idx * (360 / AGENTS.length)) % 360);
   }
   function agentColor(name) { return "hsl(" + agentHue(name) + ", 55%, 42%)"; }
+  // Real per-agent icon files are entirely optional. Drop images into
+  // icons/ and they're picked up automatically in place of the drawn
+  // monogram below — nothing else to configure. Several filename
+  // conventions and extensions are tried in turn (see iconPathCandidates
+  // below); if none of them exist, the plain colored monogram stays
+  // exactly as it is today. This repo intentionally ships no icon files
+  // of its own (see the README's note on why no Riot artwork is bundled).
+  var ICON_EXTENSIONS = ["webp", "png", "jpg", "jpeg", "svg"];
+
+  function iconBaseCandidates(name) {
+    // Primary convention: "<AgentName>_icon" (exact roster spelling),
+    // e.g. Jett_icon.webp — matches how these were actually saved.
+    var bases = [name + "_icon"];
+    // Also accept the plain lowercase slug (e.g. "jett") for anyone using
+    // that convention instead.
+    var slug = normalize(name);
+    if (slug && slug !== normalize(name + "_icon")) bases.push(slug);
+    // "/" can't appear in a filename (e.g. KAY/O), so try the common
+    // stand-ins for that one case too.
+    if (name.indexOf("/") !== -1) {
+      bases.push(name.replace(/\//g, "-") + "_icon");   // KAY-O_icon
+      bases.push(name.replace(/\//g, "_") + "_icon");   // KAY_O_icon
+      bases.push(name.replace(/\//g, "") + "_icon");    // KAYO_icon
+    }
+    return bases;
+  }
+
+  function iconPathCandidates(name) {
+    var paths = [];
+    iconBaseCandidates(name).forEach(function (base) {
+      ICON_EXTENSIONS.forEach(function (ext) {
+        paths.push("icons/" + encodeURIComponent(base) + "." + ext);
+      });
+    });
+    return paths;
+  }
+
   function makeAgentBadge(name, sizePx) {
     var el = document.createElement("span");
     el.className = "agent-badge";
@@ -502,6 +564,25 @@
     el.textContent = agentMonogram(name);
     el.title = name;
     el.setAttribute("aria-hidden", "true");
+
+    var candidates = iconPathCandidates(name);
+    if (candidates.length) {
+      var img = document.createElement("img");
+      img.className = "agent-badge-icon";
+      img.alt = "";
+      img.loading = "lazy";
+      var idx = 0;
+      img.onerror = function () {
+        idx++;
+        if (idx < candidates.length) {
+          img.src = candidates[idx];
+        } else {
+          img.remove(); // no icon file found in any format — monogram stays visible
+        }
+      };
+      img.src = candidates[idx];
+      el.appendChild(img);
+    }
     return el;
   }
 
@@ -591,9 +672,14 @@
     saveReports(list);
   }
 
-  function removeReport(index) {
+  function removeReport(filename, reason) {
+    // Identify the report by its actual key (filename+reason), not a list
+    // position — renderReportsList() displays reports sorted by lastSeen,
+    // which is a different order than loadReports() returns them in
+    // storage, so splicing by a rendered-row index removed the wrong entry.
     var list = loadReports();
-    list.splice(index, 1);
+    var idx = list.findIndex(function (r) { return r.filename === filename && r.reason === reason; });
+    if (idx !== -1) list.splice(idx, 1);
     saveReports(list);
     renderReportsList();
   }
@@ -617,7 +703,7 @@
     var wrap = $("reportsList");
     wrap.innerHTML = "";
     $("reportsEmptyMsg").hidden = list.length > 0;
-    list.forEach(function (r, i) {
+    list.forEach(function (r) {
       var row = document.createElement("div");
       row.className = "report-row";
       var label = REPORT_REASON_LABELS[r.reason] || r.reason;
@@ -634,7 +720,7 @@
       removeBtn.className = "remove-btn";
       removeBtn.title = "Dismiss this report";
       removeBtn.textContent = "✕";
-      removeBtn.addEventListener("click", function () { removeReport(i); });
+      removeBtn.addEventListener("click", function () { removeReport(r.filename, r.reason); });
       row.appendChild(removeBtn);
       wrap.appendChild(row);
     });
@@ -710,13 +796,37 @@
       });
       wrap.appendChild(b);
     });
-    var dl = $("agentSuggestions");
-    dl.innerHTML = "";
-    agentList.filter(function (a) { return activeAgents[a]; }).forEach(function (a) {
-      var o = document.createElement("option");
-      o.value = a;
-      dl.appendChild(o);
+  }
+
+  function hideTypeSuggestions() {
+    var box = $("typeSuggestions");
+    box.hidden = true;
+    box.innerHTML = "";
+  }
+
+  function renderTypeSuggestions(query) {
+    var box = $("typeSuggestions");
+    if (!query) { hideTypeSuggestions(); return; }
+    var lower = query.toLowerCase();
+    var pool = agentList.filter(function (a) { return activeAgents[a]; });
+    var matches = pool.filter(function (a) { return a.toLowerCase().indexOf(lower) !== -1; }).slice(0, 8);
+    box.innerHTML = "";
+    if (matches.length === 0) { box.hidden = true; return; }
+    matches.forEach(function (a) {
+      var row = document.createElement("div");
+      row.className = "type-suggestion";
+      row.appendChild(makeAgentBadge(a, 20));
+      row.appendChild(document.createTextNode(a));
+      // mousedown (not click) + preventDefault so this fires and fills the
+      // input before the input's blur event would otherwise hide the box.
+      row.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+        $("typeInput").value = a;
+        hideTypeSuggestions();
+      });
+      box.appendChild(row);
     });
+    box.hidden = false;
   }
 
   function renderSurfaceChips() {
@@ -828,6 +938,7 @@
       var input = $("typeInput");
       input.value = "";
       input.disabled = false;
+      hideTypeSuggestions();
       $("typeSubmitBtn").disabled = false;
       var surfSel = $("typeSurfaceSelect");
       surfSel.hidden = !requireSurface;
@@ -872,7 +983,10 @@
         fb.textContent = "✗ " + bits.join(" · ");
       }
     } else {
-      fb.textContent = isCorrect ? ("✓ Correct — " + correctAgent) : ("✗ It was " + correctAgent);
+      fb.textContent = "";
+      fb.appendChild(document.createTextNode(isCorrect ? "✓ Correct —" : "✗ It was"));
+      fb.appendChild(makeAgentBadge(correctAgent, 22));
+      fb.appendChild(document.createTextNode(correctAgent));
     }
     if (mode === "mc") {
       var agentButtons = $("mcGrid").querySelectorAll(".mc-btn");
@@ -1117,12 +1231,15 @@
       if (e.key === "Enter") {
         e.preventDefault();
         submitTypeAnswer();
+      } else if (e.key === "Escape") {
+        hideTypeSuggestions();
       }
     });
     $("typeInput").addEventListener("input", function (e) {
       if (answered) return;
-      if (e.inputType && e.inputType.indexOf("delete") === 0) return; // don't fight backspacing
       var val = this.value;
+      renderTypeSuggestions(val);
+      if (e.inputType && e.inputType.indexOf("delete") === 0) return; // don't fight backspacing
       if (!val) return;
       var lower = val.toLowerCase();
       var pool = agentList.filter(function (a) { return activeAgents[a]; });
@@ -1131,6 +1248,9 @@
         this.value = val + match.slice(val.length);
         this.setSelectionRange(val.length, match.length);
       }
+    });
+    $("typeInput").addEventListener("blur", function () {
+      hideTypeSuggestions();
     });
     $("typeSurfaceSelect").addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); submitTypeAnswer(); }
