@@ -56,8 +56,24 @@ and redeploys automatically on every push.
 
 ### 2. Connect it to Cloudflare Pages
 
-1. In the Cloudflare dashboard, go to **Workers & Pages → Create → Pages →
-   Connect to Git**, and authorize/select your GitHub repo.
+1. In the Cloudflare dashboard, go to **Workers & Pages → Create
+   application → Pages → Connect to Git**, and authorize/select your
+   GitHub repo.
+
+   Cloudflare's dashboard has been steering the main "Create" flow toward
+   its newer **Workers** product instead, so depending on when you're
+   reading this, "Pages" may not be an obvious option on that first
+   screen — look for a smaller **"Looking to deploy Pages? Get started"**
+   link (often near the bottom) and use that instead. This matters:
+   Workers and Pages are different products, and only Pages
+   auto-deploys anything placed in a `functions/` folder (used by the
+   Discord report-relay setup further down) with zero extra
+   configuration. **After deploying, check the URL Cloudflare gives you:
+   it should end in `.pages.dev`. If it ends in `.workers.dev` instead,
+   you ended up on a plain Worker, not Pages** — `functions/` won't be
+   picked up there, and `/api/report` will 404 no matter what you do in
+   Settings. Delete that project and redo this step, making sure to land
+   on the Pages flow specifically.
 2. Build settings:
    - **Framework preset:** None
    - **Build command:** leave empty. If the field won't accept empty,
@@ -255,15 +271,24 @@ from anyone but yourself. To have every visitor's reports relayed to a
 Discord channel you control, so you can review them later no matter who
 flagged the clip:
 
+**This only works if your site is deployed on Cloudflare Pages, not a
+plain Cloudflare Worker** — check the URL your project gave you: it
+should end in `.pages.dev` (or your custom domain). If it ends in
+`.workers.dev`, `functions/` is never picked up and `/api/report` will
+404 regardless of anything set below — see the "ended up on a plain
+Worker" note in step 2 of the setup section above for how to fix that
+first.
+
 1. In a Discord server you control, go to a channel -> **Edit Channel ->
    Integrations -> Webhooks -> New Webhook**, then **Copy Webhook URL**.
    (Discord webhooks only work in server channels, not DMs — a private
    server with just you in it works fine.)
 2. In the Cloudflare dashboard: your Pages project -> **Settings ->
-   Environment variables** -> add a variable named `DISCORD_WEBHOOK_URL`,
-   paste the URL as its value, and toggle **Encrypt** so it's stored as a
-   secret rather than plain text. Do this for the Production environment
-   (and Preview too, if you use preview deployments).
+   Variables and Secrets -> Add** -> variable name `DISCORD_WEBHOOK_URL`,
+   paste the URL as its value, and check **Encrypt** so it's stored as a
+   secret rather than plain text (once saved, you won't be able to view
+   the value again — only replace it). Do this for the Production
+   environment (and Preview too, if you use preview deployments).
 3. Push/redeploy. `functions/api/report.js` — a small Cloudflare Pages
    Function that ships in this repo — picks up the new environment
    variable automatically; no other setup needed.
@@ -276,8 +301,34 @@ The webhook URL itself never touches the browser — it's only ever read
 server-side inside the Function — so nobody viewing page source can grab
 it and spam your channel.
 
+### Abuse protection on `/api/report`
+
+`functions/api/report.js` checks that the request's `Origin` header matches
+the site itself, which stops a page on some *other* site from silently
+spamming your Discord channel through a visitor's browser. It does **not**
+stop a direct scripted request (curl, a Python script) that sets its own
+headers — there's no real defense against that without adding accounts or
+CAPTCHAs, which this site intentionally doesn't have. Discord's own webhook
+rate limit (roughly 30 requests/minute) is the practical backstop for that
+case, and is probably fine for a small hobby project.
+
+If you want a stronger, IP-based rate limit at Cloudflare's edge: **Settings
+→ Security → WAF → Rate limiting rules** (the free plan includes one rule).
+Set it to match path `/api/report` and block after a handful of requests
+from the same IP within 10 seconds. One catch: Cloudflare's WAF/Rate
+Limiting products apply to domains (zones) *you* control — they won't do
+anything on the shared `*.pages.dev` subdomain. This only works once
+you've attached your own [custom domain](#3-point-your-domain-at-it) to
+the project.
+
 ## Notes
 
+- `og-image.png` is the link-preview image shown when the site's URL is
+  shared on Discord/Twitter/etc. — original artwork generated for this
+  project, not Riot assets. `index.html`'s `<head>` references it (and
+  `og:url`) as an absolute `https://vsteps.pages.dev/...` URL, since
+  preview crawlers fetch those directly rather than resolving them
+  relative to the page — update both if you move to a custom domain.
 - No per-file size cap other than whatever Cloudflare Pages enforces (at
   the time of writing, Pages allows very large individual asset files —
   well beyond what a footstep clip needs).

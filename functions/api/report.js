@@ -12,9 +12,9 @@
 //   1. In Discord: a server you control -> a channel -> Edit Channel ->
 //      Integrations -> Webhooks -> New Webhook -> Copy Webhook URL.
 //   2. In the Cloudflare dashboard: your Pages project -> Settings ->
-//      Environment variables -> add DISCORD_WEBHOOK_URL (Production, and
-//      Preview if you use preview deployments too) -> paste the URL ->
-//      click the "Encrypt" option so it's stored as a secret.
+//      Variables and Secrets -> Add -> name it DISCORD_WEBHOOK_URL (do this
+//      for Production, and Preview too if you use preview deployments) ->
+//      paste the URL -> check "Encrypt" so it's stored as a secret.
 //   3. Redeploy (or just wait for the next push) so the Function picks up
 //      the new environment variable.
 //
@@ -26,6 +26,19 @@ export async function onRequestPost(context) {
 
   if (!env.DISCORD_WEBHOOK_URL) {
     return new Response("reporting isn't configured yet", { status: 500 });
+  }
+
+  // Basic anti-abuse: a real browser sends an Origin header on a POST like
+  // this one, and can't be scripted to lie about it — so if a page on some
+  // other site tries to fetch() this endpoint (to spam the Discord channel,
+  // say), the Origin won't match and we reject it here. This does nothing
+  // against a direct scripted request (curl, a Python script) that sets its
+  // own headers — there's no real defense against that without accounts or
+  // CAPTCHAs, which this site intentionally doesn't have. Discord's own
+  // webhook rate limit (~30 requests/minute) is the backstop for that case.
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) {
+    return new Response("bad origin", { status: 403 });
   }
 
   let body;

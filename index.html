@@ -4,6 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>vSteps</title>
+<meta name="description" content="Practice calling Valorant agents by their footsteps. A free, ad-free audio recognition drill — play a tagged footstep clip and guess the agent by ear.">
+
+<!-- Open Graph / Twitter link-preview tags. og:url and the image URLs are
+     absolute because link-preview crawlers (Discord, Twitter/X, etc.) fetch
+     them directly rather than resolving relative to the page — update the
+     domain here if you move off vsteps.pages.dev to a custom domain. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="vSteps — Valorant Footstep Recognition Drill">
+<meta property="og:description" content="Practice calling Valorant agents by their footsteps. Play a tagged footstep clip and guess the agent by ear.">
+<meta property="og:url" content="https://vsteps.pages.dev/">
+<meta property="og:image" content="https://vsteps.pages.dev/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="vSteps — Valorant Footstep Recognition Drill">
+<meta name="twitter:description" content="Practice calling Valorant agents by their footsteps. Play a tagged footstep clip and guess the agent by ear.">
+<meta name="twitter:image" content="https://vsteps.pages.dev/og-image.png">
+
+<!-- Original monogram icon (not Riot artwork) — an inline SVG data URI so
+     the favicon doesn't need a separate file. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230E8A79'/%3E%3Ctext x='32' y='44' font-family='monospace' font-weight='700' font-size='28' fill='white' text-anchor='middle'%3EvS%3C/text%3E%3C/svg%3E">
+
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
   :root {
@@ -313,13 +333,13 @@
     <div id="practiceUnavailable" class="panel notice" hidden>
       <div class="big">👣</div>
       <div><strong>Couldn't load the clip library.</strong></div>
-      <div class="dim">Make sure <code class="mono">clips.json</code> is sitting next to this page and you're viewing it over http/https rather than a local <code class="mono">file://</code> path — browsers block that fetch from a file path. Run a static server (e.g. <code class="mono">python3 -m http.server</code>) if you're testing locally.</div>
+      <div class="dim">This is usually a temporary connection hiccup. <button type="button" class="link-btn" id="retryLoadBtn">Try again</button></div>
     </div>
 
     <div id="practiceEmpty" class="panel notice" hidden>
       <div class="big">👣</div>
-      <div><strong>No clips in the range yet.</strong></div>
-      <div class="dim" id="practiceEmptyHint">The clip library is empty — add tagged audio files to the <code class="mono">clips/</code> folder and list them in <code class="mono">clips.json</code>.</div>
+      <div><strong>No clips available right now.</strong></div>
+      <div class="dim" id="practiceEmptyHint">Check back later — the clip library is empty at the moment.</div>
     </div>
 
     <div id="practiceMain" hidden style="display:flex; flex-direction:column; gap:18px;">
@@ -432,14 +452,16 @@
   </section>
 
   <footer>
-    vSteps — add clips by dropping audio into <code>clips/</code> and listing them in <code>clips.json</code>.
-    <div style="margin-top:6px;">
+    <div>
       <button type="button" class="link-btn" id="viewReportsBtn">🚩 Reported clips (<span id="reportCount">0</span>)</button>
     </div>
     <div style="margin-top:6px;">
       <!-- Ko-fi link placeholder: set href to your Ko-fi (or Buy Me a Coffee) page and
            delete the "hidden" attribute below to show it, e.g. href="https://ko-fi.com/yourname" -->
       <a href="#" id="supportLink" hidden>☕ Support this project</a>
+    </div>
+    <div class="dim" style="margin-top:10px; font-size:0.74rem;">
+      Fan-made practice tool. Not affiliated with or endorsed by Riot Games.
     </div>
   </footer>
 </div>
@@ -1109,7 +1131,18 @@
     ensureAudioGraph();
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(function () {});
     var p = audioEl.play();
-    if (p && p.catch) p.catch(function (e) { console.warn("playback failed", e); });
+    if (p && p.catch) {
+      p.catch(function (e) {
+        // The browser refused to play (e.g. autoplay/interaction policy) —
+        // this is different from the clip itself being broken (the
+        // "error" listener below handles that). Reset the UI instead of
+        // leaving it stuck showing "live" with no sound actually playing.
+        console.warn("playback failed", e);
+        playing = false;
+        $("idlePing").classList.remove("playing");
+        $("scopeStatus").textContent = "blocked — press play again";
+      });
+    }
     playing = true;
     $("idlePing").classList.add("playing");
     $("scopeStatus").textContent = "live";
@@ -1217,6 +1250,9 @@
   }
 
   function loadClips() {
+    $("practiceUnavailable").hidden = true;
+    $("practiceEmpty").hidden = true;
+    $("practiceLoading").hidden = false;
     fetch("clips.json", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("fetch " + r.status); return r.json(); })
       .then(function (data) {
@@ -1246,6 +1282,7 @@
     $("playBtn").addEventListener("click", playCurrentClip);
     $("replayBtn").addEventListener("click", playCurrentClip);
     $("nextBtn").addEventListener("click", pickNextClip);
+    $("retryLoadBtn").addEventListener("click", loadClips);
 
     $("typeInput").addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
