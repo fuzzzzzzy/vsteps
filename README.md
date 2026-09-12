@@ -477,17 +477,22 @@ passphrase against anything yet).
   three stats), and the Leaderboard panel opens to the Challenge tab by
   default.
 - The saved score is **not** the raw correct-answer count — it's
-  `correct³ ÷ attempted²`, rounded, computed once in `chEndRound()` when
-  the round ends (equivalent to `attempted × accuracy³`). Rewarding raw
-  volume alone would let fast, careless guessing beat someone listening
-  carefully but a bit slower, since with 5 options a blind guesser still
-  lands ~20% correct just by chance. Cubing the accuracy term makes
-  accuracy the dominant factor — e.g. 10/10 (100%, tally 10) clearly
-  beats 20/40 (50%, tally 5) despite half the raw correct answers, where
-  a plain `correct² ÷ attempted` formula would have called those two runs
-  an exact tie. Volume still counts when accuracy is comparable — 20/24
-  (83%, tally ~14) still beats 12/15 (80%, tally ~8). The live HUD during
-  a round shows the plain correct count (simpler to track mid-game); the
+  `correct^1.5 ÷ attempted^0.5`, rounded, computed once in `chEndRound()`
+  when the round ends (equivalent to `attempted × accuracy^1.5`).
+  Rewarding raw volume alone would let fast, careless guessing beat
+  someone listening carefully but a bit slower, since with 5 options a
+  blind guesser still lands ~20% correct just by chance — but earlier,
+  stronger versions of this formula (squaring or cubing the accuracy
+  term) ended up punishing a perfectly solid 60% accuracy run too hard;
+  60% is well above random chance on a 5-option quiz and should still
+  read as a good score. This exponent is deliberately gentle, landing
+  between "just count correct answers" and the squared version: 60%
+  accuracy keeps about 46% of what the same volume at 100% accuracy
+  would score. Volume and accuracy trade off roughly evenly at this
+  exponent — 15/25 (60%, tally ~11.6) actually beats 12/15 (80%, tally
+  ~10.7), since the extra volume compensates for the lower accuracy, and
+  that's intentional here rather than a bug. The live HUD during a round
+  shows the plain correct count (simpler to track mid-game); the
   weighted score, plus the raw "X correct out of Y" it's based on, only
   appears once the round ends.
 - Challenge Mode's answer grid is disabled for `CH_ANSWER_LOCK_MS` (450ms)

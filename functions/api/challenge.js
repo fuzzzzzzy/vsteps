@@ -8,11 +8,11 @@
 // the same way a high score gets submitted in most single-player arcade
 // games.
 //
-// That tally is correct^3 / attempted^2, not the raw correct count - see
-// the Challenge Mode block comment in index.html for why. This endpoint
-// just trusts and stores whatever number the client computed (clamped to
-// MAX_CHALLENGE_SCORE below) - it doesn't re-derive it from a raw
-// correct/attempted count, since those aren't sent.
+// That tally is correct^1.5 / attempted^0.5, not the raw correct count -
+// see the Challenge Mode block comment in index.html for why. This
+// endpoint just trusts and stores whatever number the client computed
+// (clamped to MAX_CHALLENGE_SCORE below) - it doesn't re-derive it from a
+// raw correct/attempted count, since those aren't sent.
 //
 // Setup is the same D1 database as the rest of the leaderboard (see
 // README.md's leaderboard section) - this reads/writes the same `players`
@@ -27,12 +27,13 @@
 
 const MAX_NAME_LEN = 24;
 const MAX_PASSPHRASE_LEN = 64;
-// A generous ceiling on a single 60-second run. The correct^3/attempted^2
-// formula tops out at "attempted" itself (when accuracy is 100%), and the
-// client's answer-lock caps attempts to roughly one every ~0.7 seconds -
-// so a real run tops out well under 100. This is only here so a buggy or
-// malicious client can't write an absurd value into the database; raise
-// it if Challenge Mode's time limit or answer-lock delay ever change.
+// A generous ceiling on a single 60-second run. The correct^1.5/
+// attempted^0.5 formula tops out at "attempted" itself (when accuracy is
+// 100%), and the client's answer-lock caps attempts to roughly one every
+// ~0.7 seconds - so a real run tops out well under 100. This is only here
+// so a buggy or malicious client can't write an absurd value into the
+// database; raise it if Challenge Mode's time limit or answer-lock delay
+// ever change.
 const MAX_CHALLENGE_SCORE = 200;
 
 // Same filter as functions/api/identity.js and functions/api/score.js,
