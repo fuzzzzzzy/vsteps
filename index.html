@@ -124,9 +124,10 @@
   .brand-logo { width: 44px; height: 44px; flex: none; border-radius: 10px; background: #0E8A79; padding: 8px; box-sizing: border-box; }
   header h1 { font-size: clamp(1.7rem, 1.35rem + 1.6vw, 2.3rem); }
   .theme-toggle {
-    flex: none; width: 40px; height: 40px; border-radius: 999px;
+    flex: none; height: 40px; padding: 0 16px; border-radius: 999px;
     border: 1px solid var(--border); background: var(--surface);
-    color: var(--text); font-size: 1.05rem; line-height: 1;
+    color: var(--text); font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.85rem; font-weight: 600; line-height: 1;
     display: inline-flex; align-items: center; justify-content: center;
     cursor: pointer;
   }
@@ -388,13 +389,15 @@
         <img class="brand-logo" src="icons/logo_icon.webp" alt="" width="44" height="44">
         <h1>ValoStep</h1>
       </div>
-      <button type="button" class="theme-toggle" id="themeToggleBtn" title="Switch theme">🌙</button>
+      <button type="button" class="theme-toggle" id="themeToggleBtn" title="Switch theme">Dark mode</button>
     </div>
     <p class="tagline">Play a tagged footstep clip and call the agent. The same way you'd do it in-game.</p>
     <div class="header-actions">
       <button type="button" class="header-cta" id="viewLeaderboardBtn">🏆 Leaderboard</button>
-      <button type="button" class="header-cta header-cta-outline" id="openChallengeBtn">⚡ Challenge</button>
       <a class="header-cta header-cta-outline" href="https://ko-fi.com/fuzzzzy" id="supportLink" target="_blank" rel="noopener">☕ Support me</a>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="header-cta header-cta-outline" id="openChallengeBtn">⚡ Challenge</button>
     </div>
   </header>
 
@@ -677,7 +680,10 @@
     var btn = $("themeToggleBtn");
     if (!btn) return;
     var dark = isDarkThemeActive();
-    btn.textContent = dark ? "☀️" : "🌙";
+    // Label names the mode a click switches TO, not the current one -
+    // same sense the old moon/sun icons had (moon shown in light mode
+    // meant "switch to dark", not "currently light").
+    btn.textContent = dark ? "Light mode" : "Dark mode";
     btn.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
   }
   updateThemeToggleIcon();
