@@ -469,13 +469,36 @@ passphrase against anything yet).
   practice pool. Only the final tally is sent to the
   server, once, when the visitor chooses to save it — nothing syncs per
   answer the way normal practice does via `/api/score`. A submitted score
-  is clamped to `MAX_CHALLENGE_SCORE` in `functions/api/challenge.js` (a
-  generous ~1 correct guess per 0.3 seconds) purely as a sanity ceiling
-  against a buggy or malicious client, not real anti-cheat — see the
-  "honest caveat" above about client-reported stats in general. The
-  identity used to save a Challenge Mode score is the same name+passphrase
-  as the rest of the leaderboard (one identity, three stats), and the
-  Leaderboard panel opens to the Challenge tab by default.
+  is clamped to `MAX_CHALLENGE_SCORE` in `functions/api/challenge.js`
+  purely as a sanity ceiling against a buggy or malicious client, not real
+  anti-cheat — see the "honest caveat" above about client-reported stats
+  in general. The identity used to save a Challenge Mode score is the
+  same name+passphrase as the rest of the leaderboard (one identity,
+  three stats), and the Leaderboard panel opens to the Challenge tab by
+  default.
+- The saved score is **not** the raw correct-answer count — it's
+  `correct² ÷ attempted`, rounded, computed once in `chEndRound()` when
+  the round ends. Rewarding raw volume alone would let fast, careless
+  guessing beat someone listening carefully but a bit slower, since with
+  5 options a blind guesser still lands ~20% correct just by chance.
+  Squaring the correct count means accuracy carries real weight — e.g.
+  12/15 (80%) beats 15/25 (60%) despite fewer raw correct answers — but
+  volume still matters too, since 12/15 loses to 20/24 (83%). The live
+  HUD during a round shows the plain correct count (simpler to track
+  mid-game); the weighted score, plus the raw "X correct out of Y" it's
+  based on, only appears once the round ends.
+- Challenge Mode's answer grid is disabled for `CH_ANSWER_LOCK_MS` (450ms)
+  at the start of every round, unlocking automatically once that's up —
+  this stops a round from being resolved faster than it takes to notice a
+  clip started at all. Without it, clicking blindly through options as
+  fast as the browser allows (no listening required) would rack up far
+  more rounds per minute than an actual listener ever could, turning the
+  leaderboard into a measure of click speed rather than ear training. It's
+  short enough that a real listener never notices it — most footstep
+  clips already run longer than that. The Replay button next to the grid
+  isn't subject to the same lock (replaying the clip doesn't let you
+  answer any sooner, it just lets you hear it again within the same
+  round).
 
 ## Notes
 

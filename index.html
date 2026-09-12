@@ -22,16 +22,22 @@
 <!-- Open Graph / Twitter link-preview tags. og:url and the image URLs are
      absolute because link-preview crawlers (Discord, Twitter/X, etc.) fetch
      them directly rather than resolving relative to the page — update the
-     domain here if you ever move to a different custom domain. -->
+     domain here if you ever move to a different custom domain.
+
+     The image URLs carry a "?v=2" cache-buster. Discord (and some other
+     unfurlers) cache a fetched image by its exact URL, separately from
+     the page cache — so if you ever replace og-image.png again, bump
+     this number, or Discord/Twitter may keep showing the old picture
+     even after you've force-refreshed the page preview itself. -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="ValoStep — Valorant Footstep Recognition Drill">
 <meta property="og:description" content="Practice calling Valorant agents by their footsteps. Play a tagged footstep clip and guess the agent by ear.">
 <meta property="og:url" content="https://www.valostep.win/">
-<meta property="og:image" content="https://www.valostep.win/og-image.png">
+<meta property="og:image" content="https://www.valostep.win/og-image.png?v=2">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="ValoStep — Valorant Footstep Recognition Drill">
 <meta name="twitter:description" content="Practice calling Valorant agents by their footsteps. Play a tagged footstep clip and guess the agent by ear.">
-<meta name="twitter:image" content="https://www.valostep.win/og-image.png">
+<meta name="twitter:image" content="https://www.valostep.win/og-image.png?v=2">
 
 <!-- Favicon: the uploaded footstep logo (icons/logo_icon.webp) composited
      onto a rounded teal badge (icons/favicon.png, generated once — see
@@ -624,7 +630,7 @@
     <div id="chIntro" style="text-align:center;">
       <p class="dim" style="font-size:0.85rem; margin-top:0;">
         Multiple choice with 5 options and every agent/surface in the library.
-        Get as many right as you can in 60 seconds.
+        Score rewards both accuracy and volume of correct guesses in 60 seconds.
       </p>
       <button type="button" class="btn btn-primary" id="chStartBtn" style="margin-top:24px;">Start Challenge</button>
     </div>
@@ -634,12 +640,16 @@
         <div class="stat-tile"><div class="v mono" id="chTimeLeft">60</div><div class="k">Seconds left</div></div>
         <div class="stat-tile"><div class="v mono" id="chScoreLive">0</div><div class="k">Correct</div></div>
       </div>
+      <div style="text-align:center; margin-bottom:10px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="chReplayBtn" disabled>↻ Replay</button>
+      </div>
       <div class="mc-grid ch-grid" id="chGrid"></div>
     </div>
 
     <div id="chEnd" hidden>
       <div class="ch-final" id="chFinalScore">0</div>
-      <div class="dim" style="text-align:center; margin-bottom:16px;">correct in 60 seconds</div>
+      <div class="dim" id="chFinalDetail" style="text-align:center; margin-bottom:2px;"></div>
+      <div class="dim" style="text-align:center; margin-bottom:16px; font-size:0.74rem;">score rewards both accuracy and volume</div>
 
       <div id="chSaveJoined" hidden>
         <div class="dim" style="font-size:0.82rem; margin-bottom:10px;">
@@ -1058,28 +1068,52 @@
   }
 
   // ================= Challenge Mode =================
-  // Multiple choice, 5 options, most correct in 60 seconds. Always draws
-  // from every agent and every surface in the whole clip library —
-  // deliberately ignores the "Agents/Surfaces in rotation" filters below,
-  // since the point of a leaderboard score is that it means the same
-  // thing for everyone, not something that gets easier the more a
-  // visitor narrows their own practice pool. Entirely separate game loop
-  // from normal practice above — its own <audio> element (chAudioEl), its
-  // own clip-picking, its own score counter — so it can't interfere with
-  // normal practice state (currentClip, the stat-hud tallies, etc.)
-  // sitting underneath the modal. The result only reaches the server as
-  // one final tally via /api/challenge when the visitor chooses to save
-  // it (see functions/api/challenge.js) - nothing is synced per-answer
-  // the way normal practice syncs via /api/score.
+  // Multiple choice, 5 options, 60 seconds. Always draws from every agent
+  // and every surface in the whole clip library — deliberately ignores
+  // the "Agents/Surfaces in rotation" filters below, since the point of a
+  // leaderboard score is that it means the same thing for everyone, not
+  // something that gets easier the more a visitor narrows their own
+  // practice pool. Entirely separate game loop from normal practice above
+  // — its own <audio> element (chAudioEl), its own clip-picking, its own
+  // score counter — so it can't interfere with normal practice state
+  // (currentClip, the stat-hud tallies, etc.) sitting underneath the
+  // modal. The result only reaches the server as one final tally via
+  // /api/challenge when the visitor chooses to save it (see
+  // functions/api/challenge.js) - nothing is synced per-answer the way
+  // normal practice syncs via /api/score.
+  //
+  // The saved score is correct^2 / attempted, not the raw correct count
+  // (see chEndRound below) - rewarding pure volume (raw correct count)
+  // would let fast, careless guessing beat someone who's actually
+  // listening carefully but a bit slower, since with 5 options a blind
+  // guesser still lands ~20% correct. Squaring the correct count means
+  // accuracy carries real weight: 12/15 (80%, tally 9.6) beats 15/25
+  // (60%, tally 9) despite fewer raw correct answers, but volume still
+  // matters too - 12/15 loses to 20/24 (83%, tally 16.7). The live HUD
+  // during a round still just shows the raw correct count (simpler to
+  // track while playing); the weighted tally only appears once the round
+  // ends, alongside the raw correct/attempted numbers it's based on.
   var CHALLENGE_DURATION = 60; // seconds
   var CHALLENGE_MC_OPTIONS = 5;
+  // The answer grid stays disabled for this long after each clip starts,
+  // so a round can't be resolved faster than it takes to physically
+  // register the clip started - without this, clicking blindly through
+  // options as fast as the browser allows (no listening at all) racks up
+  // far more rounds per minute than anyone actually listening ever could,
+  // which would make the leaderboard mostly a measure of click speed
+  // instead of ear training. Short enough that a real listener never
+  // notices it - most footstep clips already run longer than this.
+  var CH_ANSWER_LOCK_MS = 450;
   var chActive = false;
-  var chScore = 0;
+  var chScore = 0; // raw correct-answer count, shown live during the round
+  var chTotalAnswered = 0; // correct + wrong, used to weight the final tally
+  var chFinalTally = 0; // correct^2 / chTotalAnswered, computed once at round end
   var chTimeLeft = CHALLENGE_DURATION;
   var chTimerId = null;
   var chCurrentClip = null;
   var chLastClipId = null;
   var chAdvanceTimeoutId = null;
+  var chUnlockTimeoutId = null;
 
   // The entire clip library, unfiltered — see the block comment above for
   // why Challenge Mode doesn't use filteredClips() the way normal
@@ -1160,12 +1194,25 @@
       options = shuffle(rest);
     }
     renderChGrid(options);
+    // Answer buttons start disabled and unlock after CH_ANSWER_LOCK_MS -
+    // see the comment on that constant above. Replay isn't gated the same
+    // way; replaying doesn't let you answer any sooner, it just lets you
+    // hear the clip again within the same lock window.
+    $("chGrid").querySelectorAll(".mc-btn").forEach(function (b) { b.disabled = true; });
+    $("chReplayBtn").disabled = false;
     playChCurrentClip();
+    if (chUnlockTimeoutId) clearTimeout(chUnlockTimeoutId);
+    chUnlockTimeoutId = setTimeout(function () {
+      chUnlockTimeoutId = null;
+      if (!chActive || !chCurrentClip) return;
+      $("chGrid").querySelectorAll(".mc-btn").forEach(function (b) { b.disabled = false; });
+    }, CH_ANSWER_LOCK_MS);
     return true;
   }
 
   function chAnswer(picked, btnEl) {
     if (!chActive || !chCurrentClip) return;
+    if (chUnlockTimeoutId) { clearTimeout(chUnlockTimeoutId); chUnlockTimeoutId = null; }
     var correctAgent = chCurrentClip.agent;
     var grid = $("chGrid");
     grid.querySelectorAll(".mc-btn").forEach(function (b) {
@@ -1173,6 +1220,8 @@
       if (b.dataset.agent === correctAgent) b.classList.add("correct");
       else if (b === btnEl) b.classList.add("wrong");
     });
+    $("chReplayBtn").disabled = true;
+    chTotalAnswered++;
     if (picked === correctAgent) {
       chScore++;
       $("chScoreLive").textContent = chScore;
@@ -1205,6 +1254,7 @@
     if (chAgentsInPool().length < 2) { chShowIntroOrNoPool(); return; }
     chActive = true;
     chScore = 0;
+    chTotalAnswered = 0;
     chTimeLeft = CHALLENGE_DURATION;
     chLastClipId = null;
     $("chIntro").hidden = true;
@@ -1221,11 +1271,20 @@
     chActive = false;
     if (chTimerId) { clearInterval(chTimerId); chTimerId = null; }
     if (chAdvanceTimeoutId) { clearTimeout(chAdvanceTimeoutId); chAdvanceTimeoutId = null; }
+    if (chUnlockTimeoutId) { clearTimeout(chUnlockTimeoutId); chUnlockTimeoutId = null; }
     try { chAudioEl.pause(); } catch (e) { /* ignore */ }
     chCurrentClip = null;
+    $("chReplayBtn").disabled = true;
     $("chRunning").hidden = true;
     $("chEnd").hidden = false;
-    $("chFinalScore").textContent = chScore;
+    // See the Challenge Mode block comment above for why the saved score
+    // is correct^2 / attempted rather than the raw correct count.
+    chFinalTally = chTotalAnswered > 0 ? Math.round((chScore * chScore) / chTotalAnswered) : 0;
+    $("chFinalScore").textContent = chFinalTally;
+    var accuracyPct = chTotalAnswered > 0 ? Math.round((chScore / chTotalAnswered) * 100) : 0;
+    $("chFinalDetail").textContent = chTotalAnswered > 0
+      ? (chScore + " correct out of " + chTotalAnswered + " (" + accuracyPct + "%)")
+      : "No guesses made";
     chRenderSaveUI();
   }
 
@@ -1245,7 +1304,7 @@
     fetch("/api/challenge", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: name, passphrase: passphrase, score: chScore })
+      body: JSON.stringify({ name: name, passphrase: passphrase, score: chFinalTally })
     }).then(function (r) {
       if (r.status === 409) {
         onDone("That name is already taken with a different passphrase.");
@@ -1325,7 +1384,7 @@
       ? "Minimum " + lbCache.minAttempts + " clips answered, using 5+ multiple-choice options."
       : lbActiveTab === "streak"
       ? "Multiple-choice answers need 5+ options to count."
-      : "Most correct guesses (5-option multiple choice) in a single 60-second Challenge Mode round.";
+      : "Best 60-second Challenge Mode score (5-option multiple choice) - rewards both accuracy and volume of correct guesses.";
     $("lbEmptyMsg").hidden = rows.length > 0;
     rows.forEach(function (r, i) {
       var row = document.createElement("div");
@@ -2118,6 +2177,7 @@
     });
     $("chStartBtn").addEventListener("click", chStart);
     $("chPlayAgainBtn").addEventListener("click", chStart);
+    $("chReplayBtn").addEventListener("click", playChCurrentClip);
     $("chViewBoardBtn").addEventListener("click", function () {
       $("challengeModalOverlay").hidden = true;
       openLeaderboardOnTab("challenge");

@@ -2,11 +2,17 @@
 //
 // Called once, when a visitor chooses to save their Challenge Mode result
 // (see index.html's Challenge modal - multiple choice, 5 options, drawing
-// from every agent and surface in the library, most correct in 60
-// seconds). Unlike functions/api/score.js this isn't
-// called after every answer - the whole run happens client-side and only
-// the final tally gets sent here, the same way a high score gets submitted
-// in most single-player arcade games.
+// from every agent and surface in the library, 60 seconds). Unlike
+// functions/api/score.js this isn't called after every answer - the
+// whole run happens client-side and only the final tally gets sent here,
+// the same way a high score gets submitted in most single-player arcade
+// games.
+//
+// That tally is correct^2 / attempted, not the raw correct count - see
+// the Challenge Mode block comment in index.html for why. This endpoint
+// just trusts and stores whatever number the client computed (clamped to
+// MAX_CHALLENGE_SCORE below) - it doesn't re-derive it from a raw
+// correct/attempted count, since those aren't sent.
 //
 // Setup is the same D1 database as the rest of the leaderboard (see
 // README.md's leaderboard section) - this reads/writes the same `players`
@@ -21,11 +27,12 @@
 
 const MAX_NAME_LEN = 24;
 const MAX_PASSPHRASE_LEN = 64;
-// A generous ceiling on a single 60-second run - about one correct guess
-// every 0.3 seconds, sustained the whole round. Nobody's actually reaching
-// this; it's only here so a buggy or malicious client can't write an
-// absurd value into the database. Raise it if Challenge Mode's time limit
-// ever changes from 60 seconds.
+// A generous ceiling on a single 60-second run. The correct^2/attempted
+// formula tops out at "attempted" itself (when accuracy is 100%), and the
+// client's answer-lock caps attempts to roughly one every ~0.7 seconds -
+// so a real run tops out well under 100. This is only here so a buggy or
+// malicious client can't write an absurd value into the database; raise
+// it if Challenge Mode's time limit or answer-lock delay ever change.
 const MAX_CHALLENGE_SCORE = 200;
 
 // Same filter as functions/api/identity.js and functions/api/score.js,
