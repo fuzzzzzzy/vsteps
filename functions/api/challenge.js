@@ -1,8 +1,9 @@
 // Cloudflare Pages Function: POST /api/challenge
 //
 // Called once, when a visitor chooses to save their Challenge Mode result
-// (see index.html's Challenge modal - guess the agent out of 2 choices,
-// most correct in 60 seconds). Unlike functions/api/score.js this isn't
+// (see index.html's Challenge modal - multiple choice, 5 options, drawing
+// from every agent and surface in the library, most correct in 60
+// seconds). Unlike functions/api/score.js this isn't
 // called after every answer - the whole run happens client-side and only
 // the final tally gets sent here, the same way a high score gets submitted
 // in most single-player arcade games.

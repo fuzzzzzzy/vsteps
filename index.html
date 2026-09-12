@@ -272,8 +272,6 @@
 
   /* ---- Challenge Mode ---- */
   .stat-hud.ch-hud { grid-template-columns: repeat(2, 1fr); margin-bottom: 16px; }
-  .ch-grid .mc-btn { padding: 26px 10px; font-size: 1.05rem; }
-  .ch-grid .mc-btn .agent-badge { width: 60px; height: 60px; font-size: 1.3rem; }
   .ch-final {
     font-family: "Chakra Petch", sans-serif; font-weight: 700;
     font-size: 3.2rem; text-align: center; color: var(--accent); line-height: 1.1;
@@ -397,7 +395,7 @@
       <a class="header-cta header-cta-outline" href="https://ko-fi.com/fuzzzzy" id="supportLink" target="_blank" rel="noopener">☕ Support me</a>
     </div>
     <div class="header-actions">
-      <button type="button" class="header-cta header-cta-outline" id="openChallengeBtn">⚡ Challenge</button>
+      <button type="button" class="header-cta header-cta-outline" id="openChallengeBtn">Start Challenge</button>
     </div>
   </header>
 
@@ -431,7 +429,7 @@
         <div class="player-controls">
           <button class="btn btn-primary" id="playBtn">▶ Play Clip</button>
           <button class="btn btn-ghost" id="replayBtn" disabled>↻ Replay</button>
-          <button class="btn btn-ghost" id="reportBtn" disabled title="Flag a problem with this clip">🚩 Report</button>
+          <button class="btn btn-ghost" id="reportBtn" disabled title="Flag a problem with this clip">Report Clip</button>
           <span class="idle-ping" id="idlePing" aria-hidden="true"></span>
           <span class="dim mono" id="clipCounter" style="margin-left:auto; font-size:0.78rem;"></span>
         </div>
@@ -601,13 +599,14 @@
     </div>
 
     <div id="chNoPool" class="dim" hidden style="padding:12px 0;">
-      Select at least 2 agents in "Agents in rotation" below to play Challenge Mode.
+      Challenge Mode needs at least 2 agents with clips in the library to play.
     </div>
 
     <div id="chIntro" style="text-align:center;">
       <p class="dim" style="font-size:0.85rem; margin-top:0;">
-        Guess the agent out of 2 choices — as many as you can get right in 60 seconds.
-        Uses whichever agents/surfaces you have active in "in rotation" below.
+        Multiple choice, 5 options — every agent and surface in the library
+        is in play, regardless of your practice filters below. Get as many
+        right as you can in 60 seconds.
       </p>
       <button type="button" class="btn btn-primary" id="chStartBtn" style="margin-top:24px;">Start Challenge</button>
     </div>
@@ -1029,15 +1028,21 @@
   }
 
   // ================= Challenge Mode =================
-  // Guess the agent out of 2 choices, most correct in 60 seconds. Entirely
-  // separate game loop from normal practice above — its own <audio>
-  // element (chAudioEl), its own clip-picking, its own score counter — so
-  // it can't interfere with normal practice state (currentClip, the
-  // stat-hud tallies, etc.) sitting underneath the modal. The result only
-  // reaches the server as one final tally via /api/challenge when the
-  // visitor chooses to save it (see functions/api/challenge.js) - nothing
-  // is synced per-answer the way normal practice syncs via /api/score.
+  // Multiple choice, 5 options, most correct in 60 seconds. Always draws
+  // from every agent and every surface in the whole clip library —
+  // deliberately ignores the "Agents/Surfaces in rotation" filters below,
+  // since the point of a leaderboard score is that it means the same
+  // thing for everyone, not something that gets easier the more a
+  // visitor narrows their own practice pool. Entirely separate game loop
+  // from normal practice above — its own <audio> element (chAudioEl), its
+  // own clip-picking, its own score counter — so it can't interfere with
+  // normal practice state (currentClip, the stat-hud tallies, etc.)
+  // sitting underneath the modal. The result only reaches the server as
+  // one final tally via /api/challenge when the visitor chooses to save
+  // it (see functions/api/challenge.js) - nothing is synced per-answer
+  // the way normal practice syncs via /api/score.
   var CHALLENGE_DURATION = 60; // seconds
+  var CHALLENGE_MC_OPTIONS = 5;
   var chActive = false;
   var chScore = 0;
   var chTimeLeft = CHALLENGE_DURATION;
@@ -1046,8 +1051,15 @@
   var chLastClipId = null;
   var chAdvanceTimeoutId = null;
 
+  // The entire clip library, unfiltered — see the block comment above for
+  // why Challenge Mode doesn't use filteredClips() the way normal
+  // practice does.
+  function chFullPool() {
+    return clips;
+  }
+
   function chAgentsInPool() {
-    var pool = filteredClips();
+    var pool = chFullPool();
     var seen = {};
     var list = [];
     pool.forEach(function (c) { if (!seen[c.agent]) { seen[c.agent] = true; list.push(c.agent); } });
@@ -1063,7 +1075,7 @@
       b.className = "mc-btn";
       b.dataset.agent = a;
       b.setAttribute("aria-label", a);
-      b.appendChild(makeAgentBadge(a, 60));
+      b.appendChild(makeAgentBadge(a, 42));
       var cap = document.createElement("span");
       cap.className = "mc-name";
       cap.textContent = a;
@@ -1085,14 +1097,17 @@
     }
   }
 
-  // Picks the next clip + a 2-agent choice (the clip's real agent, plus
-  // one random distractor), same "pick the agent first, then a clip
+  // Picks the next clip + up to CHALLENGE_MC_OPTIONS agent choices (the
+  // clip's real agent, guaranteed included, plus others drawn from every
+  // agent in the library) - same "pick the agent first, then a clip
   // within it" approach as pickNextClip() above so agents with more
-  // recorded clips don't come up more often. Returns false (does nothing
-  // else) if there aren't at least 2 agents in the current pool to guess
-  // between — callers check that before ever starting a round.
+  // recorded clips don't come up more often, and the same "shuffle then
+  // narrow, keeping the correct one" approach rebuildAnswerUI() above
+  // uses for normal practice's multiple choice. Returns false (does
+  // nothing else) if there aren't at least 2 agents in the library at all
+  // to guess between — callers check that before ever starting a round.
   function chPickRound() {
-    var pool = filteredClips();
+    var pool = chFullPool();
     var byAgent = {};
     pool.forEach(function (c) { (byAgent[c.agent] = byAgent[c.agent] || []).push(c); });
     var agentsInPool = Object.keys(byAgent);
@@ -1107,9 +1122,14 @@
     var chosen = candidates[Math.floor(Math.random() * candidates.length)];
     chCurrentClip = chosen;
     chLastClipId = chosen.id;
-    var distractorPool = agentsInPool.filter(function (a) { return a !== agent; });
-    var distractor = distractorPool[Math.floor(Math.random() * distractorPool.length)];
-    renderChGrid(shuffle([agent, distractor]));
+
+    var options = shuffle(agentsInPool);
+    if (options.length > CHALLENGE_MC_OPTIONS) {
+      var rest = options.filter(function (a) { return a !== agent; }).slice(0, CHALLENGE_MC_OPTIONS - 1);
+      rest.push(agent);
+      options = shuffle(rest);
+    }
+    renderChGrid(options);
     playChCurrentClip();
     return true;
   }
@@ -1275,7 +1295,7 @@
       ? "Minimum " + lbCache.minAttempts + " clips answered, using 5+ multiple-choice options."
       : lbActiveTab === "streak"
       ? "Multiple-choice answers need 5+ options to count."
-      : "Most correct guesses (2 choices) in a single 60-second Challenge Mode round.";
+      : "Most correct guesses (5-option multiple choice) in a single 60-second Challenge Mode round.";
     $("lbEmptyMsg").hidden = rows.length > 0;
     rows.forEach(function (r, i) {
       var row = document.createElement("div");
@@ -1904,7 +1924,7 @@
         addReport(currentClip, btn.dataset.reason, false);
         $("reportPanel").hidden = true;
         $("reportBtn").textContent = "✓ Reported";
-        setTimeout(function () { $("reportBtn").textContent = "🚩 Report"; }, 1500);
+        setTimeout(function () { $("reportBtn").textContent = "Report Clip"; }, 1500);
       });
     });
 

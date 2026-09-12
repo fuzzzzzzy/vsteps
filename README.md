@@ -342,10 +342,11 @@ the project.
 ## Leaderboard (optional)
 
 Tracks the top players by lifetime accuracy, by best-ever streak, and by
-best-ever Challenge Mode score (⚡ Challenge — guess the agent out of 2
-choices, most correct in 60 seconds) across *everyone* who's played, not
-just the current browser. This needs a real database — unlike the Discord
-report relay, there's no way around that, since a leaderboard's whole
+best-ever Challenge Mode score (Start Challenge — 5-option multiple
+choice, drawing from every agent and surface in the library, most correct
+in 60 seconds) across *everyone* who's played, not just the current
+browser. This needs a real database — unlike the Discord report relay,
+there's no way around that, since a leaderboard's whole
 point is state shared across visitors.
 
 **Identity is intentionally lightweight**: a visitor picks a display name
@@ -453,11 +454,15 @@ passphrase against anything yet).
   database. "Type answer" mode has no option count and always counts —
   typing the exact name from scratch is already harder than any
   multiple-choice count.
-- Challenge Mode (⚡ Challenge in the header) is a separate 60-second,
-  2-choice guessing game — its own game loop in `index.html`, entirely
-  independent of normal practice (own `<audio>` element, own clip-picking,
-  own score counter) so it can't interfere with normal practice state
-  sitting underneath the modal. Only the final tally is sent to the
+- Challenge Mode (Start Challenge in the header) is a separate 60-second,
+  5-option multiple-choice game — its own game loop in `index.html`,
+  entirely independent of normal practice (own `<audio>` element, own
+  clip-picking, own score counter) so it can't interfere with normal
+  practice state sitting underneath the modal. It deliberately ignores
+  the "Agents/Surfaces in rotation" filters and always draws from the
+  entire clip library (`chFullPool()`), so a saved score means the same
+  thing for every player regardless of how anyone's narrowed their own
+  practice pool. Only the final tally is sent to the
   server, once, when the visitor chooses to save it — nothing syncs per
   answer the way normal practice does via `/api/score`. A submitted score
   is clamped to `MAX_CHALLENGE_SCORE` in `functions/api/challenge.js` (a
