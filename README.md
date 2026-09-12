@@ -25,6 +25,8 @@ functions/api/identity.js  optional: leaderboard - claims/verifies name+passphra
 functions/api/score.js    optional: leaderboard - records a synced answer (see below)
 functions/api/leaderboard.js  optional: leaderboard - serves the top players (see below)
 schema.sql                the leaderboard's database table, for one-time setup (see below)
+functions/_middleware.js  redirects the old *.pages.dev address to the custom domain (see below)
+_headers                  adds the HSTS security header to every response (see below)
 ```
 
 The core app needs no server, database, or upload form — you manage the
@@ -456,6 +458,16 @@ against anything yet).
   pages.dev address outright, so this is the practical equivalent —
   update `CUSTOM_DOMAIN` (and redeploy) if the custom domain ever
   changes.
+- `_headers` adds a `Strict-Transport-Security` (HSTS) header to every
+  response — Cloudflare Pages reads this file automatically, no Function
+  needed. This is what fixes the "Domains without HSTS" finding in
+  Cloudflare's security scanner: without it, the very first request to
+  `valostep.win` (no `https://` typed, or an old `http://` link) briefly
+  goes out over plain HTTP before Cloudflare's redirect kicks in; HSTS
+  tells the browser to skip straight to HTTPS from then on. Deliberately
+  left off `includeSubDomains` and `preload` — see the comment in the
+  file for why — add either later once you're confident every subdomain
+  you'll ever use is HTTPS-only.
 - The site logo is `icons/logo_icon.webp` (a white footstep mark, meant
   to sit on a colored background) — `index.html`'s header displays it
   directly on a teal CSS badge (`.brand-logo`). `icons/favicon.png` is a

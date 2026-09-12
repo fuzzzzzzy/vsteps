@@ -1,0 +1,24 @@
+# Cloudflare Pages reads this file and adds these response headers to every
+# request it matches, no Function needed - see
+# https://developers.cloudflare.com/pages/configuration/headers/
+#
+# Strict-Transport-Security (HSTS) tells browsers "always use HTTPS for this
+# site, never even try plain http://" for the next `max-age` seconds. Pages
+# already forces HTTPS on its own, but without this header a browser has no
+# way to know that ahead of time - the very first request from someone who
+# types "valostep.win" with no "https://" (or clicks an old http:// link)
+# still goes out over plain HTTP for one round trip before Cloudflare
+# redirects it, which is the exact gap HSTS closes, and it's what Cloudflare's
+# own security scanner flags as "Domains without HSTS".
+#
+# max-age=63072000 is 2 years (Cloudflare/browser-recommended value).
+# includeSubDomains is left off on purpose - it would also apply this policy
+# to every subdomain of valostep.win (e.g. a future mail. or status.
+# subdomain), and that's only safe to turn on once you're sure every
+# subdomain you'll ever use is HTTPS-only. Same reasoning for leaving off
+# `preload`: it gets this domain baked into browsers' built-in HSTS list,
+# which is great for security but painful to undo (removal can take months
+# to reach everyone), so it's worth adding only once you're fully confident
+# in the HTTPS setup. Both are one-line additions here later if you want them.
+/*
+  Strict-Transport-Security: max-age=63072000
