@@ -477,16 +477,19 @@ passphrase against anything yet).
   three stats), and the Leaderboard panel opens to the Challenge tab by
   default.
 - The saved score is **not** the raw correct-answer count — it's
-  `correct² ÷ attempted`, rounded, computed once in `chEndRound()` when
-  the round ends. Rewarding raw volume alone would let fast, careless
-  guessing beat someone listening carefully but a bit slower, since with
-  5 options a blind guesser still lands ~20% correct just by chance.
-  Squaring the correct count means accuracy carries real weight — e.g.
-  12/15 (80%) beats 15/25 (60%) despite fewer raw correct answers — but
-  volume still matters too, since 12/15 loses to 20/24 (83%). The live
-  HUD during a round shows the plain correct count (simpler to track
-  mid-game); the weighted score, plus the raw "X correct out of Y" it's
-  based on, only appears once the round ends.
+  `correct³ ÷ attempted²`, rounded, computed once in `chEndRound()` when
+  the round ends (equivalent to `attempted × accuracy³`). Rewarding raw
+  volume alone would let fast, careless guessing beat someone listening
+  carefully but a bit slower, since with 5 options a blind guesser still
+  lands ~20% correct just by chance. Cubing the accuracy term makes
+  accuracy the dominant factor — e.g. 10/10 (100%, tally 10) clearly
+  beats 20/40 (50%, tally 5) despite half the raw correct answers, where
+  a plain `correct² ÷ attempted` formula would have called those two runs
+  an exact tie. Volume still counts when accuracy is comparable — 20/24
+  (83%, tally ~14) still beats 12/15 (80%, tally ~8). The live HUD during
+  a round shows the plain correct count (simpler to track mid-game); the
+  weighted score, plus the raw "X correct out of Y" it's based on, only
+  appears once the round ends.
 - Challenge Mode's answer grid is disabled for `CH_ANSWER_LOCK_MS` (450ms)
   at the start of every round, unlocking automatically once that's up —
   this stops a round from being resolved faster than it takes to notice a

@@ -1082,17 +1082,21 @@
   // functions/api/challenge.js) - nothing is synced per-answer the way
   // normal practice syncs via /api/score.
   //
-  // The saved score is correct^2 / attempted, not the raw correct count
+  // The saved score is correct^3 / attempted^2, not the raw correct count
   // (see chEndRound below) - rewarding pure volume (raw correct count)
   // would let fast, careless guessing beat someone who's actually
   // listening carefully but a bit slower, since with 5 options a blind
-  // guesser still lands ~20% correct. Squaring the correct count means
-  // accuracy carries real weight: 12/15 (80%, tally 9.6) beats 15/25
-  // (60%, tally 9) despite fewer raw correct answers, but volume still
-  // matters too - 12/15 loses to 20/24 (83%, tally 16.7). The live HUD
-  // during a round still just shows the raw correct count (simpler to
-  // track while playing); the weighted tally only appears once the round
-  // ends, alongside the raw correct/attempted numbers it's based on.
+  // guesser still lands ~20% correct. This is equivalent to
+  // attempted * accuracy^3 - cubing the accuracy term (rather than
+  // squaring it) makes accuracy the dominant factor: 10/10 (100%, tally
+  // 10) clearly beats 20/40 (50%, tally 5) despite half the raw correct
+  // answers, where a plain correct^2/attempted formula would have called
+  // those two runs an exact tie (10 vs 10). Volume still counts when
+  // accuracy is comparable - 20/24 (83%, tally ~14) still beats 12/15
+  // (80%, tally ~8). The live HUD during a round still just shows the
+  // raw correct count (simpler to track while playing); the weighted
+  // tally only appears once the round ends, alongside the raw
+  // correct/attempted numbers it's based on.
   var CHALLENGE_DURATION = 60; // seconds
   var CHALLENGE_MC_OPTIONS = 5;
   // The answer grid stays disabled for this long after each clip starts,
@@ -1107,7 +1111,7 @@
   var chActive = false;
   var chScore = 0; // raw correct-answer count, shown live during the round
   var chTotalAnswered = 0; // correct + wrong, used to weight the final tally
-  var chFinalTally = 0; // correct^2 / chTotalAnswered, computed once at round end
+  var chFinalTally = 0; // correct^3 / chTotalAnswered^2, computed once at round end
   var chTimeLeft = CHALLENGE_DURATION;
   var chTimerId = null;
   var chCurrentClip = null;
@@ -1278,8 +1282,10 @@
     $("chRunning").hidden = true;
     $("chEnd").hidden = false;
     // See the Challenge Mode block comment above for why the saved score
-    // is correct^2 / attempted rather than the raw correct count.
-    chFinalTally = chTotalAnswered > 0 ? Math.round((chScore * chScore) / chTotalAnswered) : 0;
+    // is correct^3 / attempted^2 rather than the raw correct count.
+    chFinalTally = chTotalAnswered > 0
+      ? Math.round((chScore * chScore * chScore) / (chTotalAnswered * chTotalAnswered))
+      : 0;
     $("chFinalScore").textContent = chFinalTally;
     var accuracyPct = chTotalAnswered > 0 ? Math.round((chScore / chTotalAnswered) * 100) : 0;
     $("chFinalDetail").textContent = chTotalAnswered > 0
