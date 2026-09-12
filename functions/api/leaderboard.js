@@ -1,13 +1,16 @@
 // Cloudflare Pages Function: GET /api/leaderboard
 //
-// Public, read-only - returns the top players by lifetime accuracy and by
-// best-ever streak. See functions/api/score.js for how those numbers get
-// populated, and README.md's leaderboard section for the D1 setup this
-// depends on.
+// Public, read-only - returns the top players by lifetime accuracy, by
+// best-ever streak, and by best-ever Challenge Mode score. See
+// functions/api/score.js and functions/api/challenge.js for how those
+// numbers get populated, and README.md's leaderboard section for the D1
+// setup this depends on.
 //
 // The accuracy list requires a minimum number of answers (MIN_ATTEMPTS)
 // so a player who's answered 1 clip correctly doesn't show up at a
-// meaningless "100%" ahead of everyone with real sample size.
+// meaningless "100%" ahead of everyone with real sample size. Streak and
+// Challenge Mode have no such floor - a single best-ever run is the whole
+// point of both.
 
 const MIN_ATTEMPTS_FOR_ACCURACY = 20;
 const LIMIT = 10;
@@ -32,6 +35,11 @@ export async function onRequestGet(context) {
     .bind(LIMIT)
     .all();
 
+  const challengeRows = await env.DB
+    .prepare("SELECT display_name, best_challenge FROM players ORDER BY best_challenge DESC LIMIT ?")
+    .bind(LIMIT)
+    .all();
+
   const accuracy = (accuracyRows.results || []).map((r) => ({
     name: r.display_name,
     correct: r.correct,
@@ -42,9 +50,13 @@ export async function onRequestGet(context) {
     name: r.display_name,
     bestStreak: r.best_streak,
   }));
+  const challenge = (challengeRows.results || []).map((r) => ({
+    name: r.display_name,
+    bestChallenge: r.best_challenge,
+  }));
 
   return new Response(
-    JSON.stringify({ accuracy, streak, minAttempts: MIN_ATTEMPTS_FOR_ACCURACY }),
+    JSON.stringify({ accuracy, streak, challenge, minAttempts: MIN_ATTEMPTS_FOR_ACCURACY }),
     { headers: { "content-type": "application/json", "cache-control": "no-store" } }
   );
 }

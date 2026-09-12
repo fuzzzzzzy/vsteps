@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ValoStep</title>
+<!-- Applies a saved light/dark override (see the theme toggle near the end
+     of the main <script>) before the page paints, so returning visitors who
+     picked a theme don't see a flash of the wrong one first. With no saved
+     choice, this does nothing and the CSS below just follows the system
+     setting (prefers-color-scheme), same as before this toggle existed. -->
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem("vsteps.theme");
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) { /* localStorage unavailable - falls back to system setting */ }
+  })();
+</script>
 <meta name="description" content="Practice calling Valorant agents by their footsteps. A free, ad-free audio recognition drill — play a tagged footstep clip and guess the agent by ear.">
 
 <!-- Open Graph / Twitter link-preview tags. og:url and the image URLs are
@@ -106,10 +119,18 @@
 
   /* ---- header ---- */
   header { display: flex; flex-direction: column; gap: 10px; }
-  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand-logo { width: 44px; height: 44px; flex: none; border-radius: 10px; background: #0E8A79; padding: 8px; box-sizing: border-box; }
   header h1 { font-size: clamp(1.7rem, 1.35rem + 1.6vw, 2.3rem); }
+  .theme-toggle {
+    flex: none; width: 40px; height: 40px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); font-size: 1.05rem; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { border-color: var(--accent); }
   header p.tagline { margin: 0; color: var(--text-dim); font-size: 0.95rem; text-align: center; }
   .header-actions { margin-top: 4px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; }
   .header-cta {
@@ -248,6 +269,15 @@
   .mc-btn.wrong { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
   .mc-btn:disabled { cursor: default; opacity: 0.75; }
 
+  /* ---- Challenge Mode ---- */
+  .stat-hud.ch-hud { grid-template-columns: repeat(2, 1fr); margin-bottom: 16px; }
+  .ch-grid .mc-btn { padding: 26px 10px; font-size: 1.05rem; }
+  .ch-grid .mc-btn .agent-badge { width: 60px; height: 60px; font-size: 1.3rem; }
+  .ch-final {
+    font-family: "Chakra Petch", sans-serif; font-weight: 700;
+    font-size: 3.2rem; text-align: center; color: var(--accent); line-height: 1.1;
+  }
+
   .type-row { display: flex; gap: 10px; flex-wrap: wrap; }
   .type-row input[type="text"] {
     flex: 1; min-width: 160px; font-family: "IBM Plex Mono", monospace; font-size: 1rem;
@@ -358,10 +388,12 @@
         <img class="brand-logo" src="icons/logo_icon.webp" alt="" width="44" height="44">
         <h1>ValoStep</h1>
       </div>
+      <button type="button" class="theme-toggle" id="themeToggleBtn" title="Switch theme">🌙</button>
     </div>
     <p class="tagline">Play a tagged footstep clip and call the agent. The same way you'd do it in-game.</p>
     <div class="header-actions">
       <button type="button" class="header-cta" id="viewLeaderboardBtn">🏆 Leaderboard</button>
+      <button type="button" class="header-cta header-cta-outline" id="openChallengeBtn">⚡ Challenge</button>
       <a class="header-cta header-cta-outline" href="https://ko-fi.com/fuzzzzy" id="supportLink" target="_blank" rel="noopener">☕ Support me</a>
     </div>
   </header>
@@ -544,7 +576,8 @@
     </div>
 
     <div class="segmented" id="lbTabs">
-      <button type="button" aria-pressed="true" data-tab="accuracy">Top accuracy</button>
+      <button type="button" aria-pressed="true" data-tab="challenge">Challenge</button>
+      <button type="button" aria-pressed="false" data-tab="accuracy">Top accuracy</button>
       <button type="button" aria-pressed="false" data-tab="streak">Top streak</button>
     </div>
     <div class="lb-note" id="lbNote"></div>
@@ -557,7 +590,64 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="challengeModalOverlay" hidden>
+  <div class="modal-box">
+    <div class="panel-head">
+      <h2 style="font-size:1rem;">⚡ Challenge Mode</h2>
+      <button type="button" class="link-btn" id="closeChallengeBtn">close ✕</button>
+    </div>
+
+    <div id="chNoPool" class="dim" hidden style="padding:12px 0;">
+      Select at least 2 agents in "Agents in rotation" below to play Challenge Mode.
+    </div>
+
+    <div id="chIntro">
+      <p class="dim" style="font-size:0.85rem; margin-top:0;">
+        Guess the agent out of 2 choices — as many as you can get right in 60 seconds.
+        Uses whichever agents/surfaces you have active in "in rotation" below.
+      </p>
+      <button type="button" class="btn btn-primary" id="chStartBtn" style="width:100%;">Start</button>
+    </div>
+
+    <div id="chRunning" hidden>
+      <div class="stat-hud ch-hud">
+        <div class="stat-tile"><div class="v mono" id="chTimeLeft">60</div><div class="k">Seconds left</div></div>
+        <div class="stat-tile"><div class="v mono" id="chScoreLive">0</div><div class="k">Correct</div></div>
+      </div>
+      <div class="mc-grid ch-grid" id="chGrid"></div>
+    </div>
+
+    <div id="chEnd" hidden>
+      <div class="ch-final" id="chFinalScore">0</div>
+      <div class="dim" style="text-align:center; margin-bottom:16px;">correct in 60 seconds</div>
+
+      <div id="chSaveJoined" hidden>
+        <div class="dim" style="font-size:0.82rem; margin-bottom:10px;">
+          Save this as <strong id="chCurrentName2"></strong>'s best Challenge Mode score?
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn btn-primary" id="chSaveBtn" style="flex:1;">Save score</button>
+          <button type="button" class="btn btn-ghost" id="chSkipSaveBtn">Skip</button>
+        </div>
+      </div>
+
+      <form id="chJoinForm" class="lb-identity" hidden>
+        <input type="text" id="chNameInput" placeholder="Display name" maxlength="24" autocomplete="off">
+        <input type="password" id="chPassInput" placeholder="Passphrase" maxlength="64" autocomplete="off">
+        <button type="submit" class="btn btn-sm">Join &amp; save score</button>
+      </form>
+      <div class="lb-msg" id="chSaveMsg"></div>
+
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button type="button" class="btn" id="chPlayAgainBtn" style="flex:1;">Play again</button>
+        <button type="button" class="btn btn-ghost" id="chViewBoardBtn" style="flex:1;">View leaderboard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <audio id="clipPlayer" preload="none" style="display:none;"></audio>
+<audio id="challengeClipPlayer" preload="none" style="display:none;"></audio>
 
 <script>
 (function () {
@@ -567,6 +657,37 @@
   function $(id) { return document.getElementById(id); }
   function safeLocalGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function safeLocalSet(key, val) { try { window.localStorage.setItem(key, val); } catch (e) { /* ignore */ } }
+  // ---------- light/dark theme toggle ----------
+  // The actual color swap is pure CSS (:root vs :root[data-theme="dark/light"]
+  // - see <style> above); this just flips that attribute, remembers the
+  // choice, and keeps the button's icon in sync. A tiny inline script in
+  // <head> applies a saved choice before first paint so there's no flash of
+  // the wrong theme on reload - keep that in sync if this key ever changes.
+  var THEME_KEY = "vsteps.theme";
+  function prefersDarkSystemwide() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  }
+  function isDarkThemeActive() {
+    var saved = document.documentElement.getAttribute("data-theme");
+    if (saved === "dark") return true;
+    if (saved === "light") return false;
+    return prefersDarkSystemwide();
+  }
+  function updateThemeToggleIcon() {
+    var btn = $("themeToggleBtn");
+    if (!btn) return;
+    var dark = isDarkThemeActive();
+    btn.textContent = dark ? "☀️" : "🌙";
+    btn.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+  }
+  updateThemeToggleIcon();
+  $("themeToggleBtn").addEventListener("click", function () {
+    var next = isDarkThemeActive() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    safeLocalSet(THEME_KEY, next);
+    updateThemeToggleIcon();
+  });
+
   function normalize(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
   function clampInt(n, min, max) { n = parseInt(n, 10); if (isNaN(n)) n = min; return Math.max(min, Math.min(max, n)); }
   function shuffle(arr) {
@@ -696,6 +817,10 @@
   var answered = false;
   var playing = false;
   var audioEl = $("clipPlayer");
+  var chAudioEl = $("challengeClipPlayer"); // Challenge Mode's own <audio> - kept
+  // separate from audioEl above so the normal practice mode's "ended"/"error"
+  // listeners (tied to currentClip, auto-report-on-silence, etc.) never fire
+  // for a Challenge Mode clip, and vice versa.
   var audioCtx = null, analyser = null, sourceNode = null, freqData = null;
   var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   var storedVolume = safeLocalGet("vsteps.volume");
@@ -897,6 +1022,192 @@
     }
   }
 
+  // ================= Challenge Mode =================
+  // Guess the agent out of 2 choices, most correct in 60 seconds. Entirely
+  // separate game loop from normal practice above — its own <audio>
+  // element (chAudioEl), its own clip-picking, its own score counter — so
+  // it can't interfere with normal practice state (currentClip, the
+  // stat-hud tallies, etc.) sitting underneath the modal. The result only
+  // reaches the server as one final tally via /api/challenge when the
+  // visitor chooses to save it (see functions/api/challenge.js) - nothing
+  // is synced per-answer the way normal practice syncs via /api/score.
+  var CHALLENGE_DURATION = 60; // seconds
+  var chActive = false;
+  var chScore = 0;
+  var chTimeLeft = CHALLENGE_DURATION;
+  var chTimerId = null;
+  var chCurrentClip = null;
+  var chLastClipId = null;
+  var chAdvanceTimeoutId = null;
+
+  function chAgentsInPool() {
+    var pool = filteredClips();
+    var seen = {};
+    var list = [];
+    pool.forEach(function (c) { if (!seen[c.agent]) { seen[c.agent] = true; list.push(c.agent); } });
+    return list;
+  }
+
+  function renderChGrid(choices) {
+    var grid = $("chGrid");
+    grid.innerHTML = "";
+    choices.forEach(function (a) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "mc-btn";
+      b.dataset.agent = a;
+      b.setAttribute("aria-label", a);
+      b.appendChild(makeAgentBadge(a, 60));
+      var cap = document.createElement("span");
+      cap.className = "mc-name";
+      cap.textContent = a;
+      b.appendChild(cap);
+      b.addEventListener("click", function () { chAnswer(a, b); });
+      grid.appendChild(b);
+    });
+  }
+
+  function playChCurrentClip() {
+    if (!chCurrentClip) return;
+    chAudioEl.src = "clips/" + encodeURIComponent(chCurrentClip.filename);
+    var p = chAudioEl.play();
+    if (p && p.catch) {
+      // Autoplay blocked, or the file's broken — either way, don't get
+      // stuck silently. The clip's tag is what's being tested, not
+      // whether it can be heard, so the round keeps going either way.
+      p.catch(function () { /* ignore */ });
+    }
+  }
+
+  // Picks the next clip + a 2-agent choice (the clip's real agent, plus
+  // one random distractor), same "pick the agent first, then a clip
+  // within it" approach as pickNextClip() above so agents with more
+  // recorded clips don't come up more often. Returns false (does nothing
+  // else) if there aren't at least 2 agents in the current pool to guess
+  // between — callers check that before ever starting a round.
+  function chPickRound() {
+    var pool = filteredClips();
+    var byAgent = {};
+    pool.forEach(function (c) { (byAgent[c.agent] = byAgent[c.agent] || []).push(c); });
+    var agentsInPool = Object.keys(byAgent);
+    if (agentsInPool.length < 2) return false;
+    var agent = agentsInPool[Math.floor(Math.random() * agentsInPool.length)];
+    var group = byAgent[agent];
+    var candidates = group;
+    if (group.length > 1 && chLastClipId) {
+      var narrowed = group.filter(function (c) { return c.id !== chLastClipId; });
+      if (narrowed.length > 0) candidates = narrowed;
+    }
+    var chosen = candidates[Math.floor(Math.random() * candidates.length)];
+    chCurrentClip = chosen;
+    chLastClipId = chosen.id;
+    var distractorPool = agentsInPool.filter(function (a) { return a !== agent; });
+    var distractor = distractorPool[Math.floor(Math.random() * distractorPool.length)];
+    renderChGrid(shuffle([agent, distractor]));
+    playChCurrentClip();
+    return true;
+  }
+
+  function chAnswer(picked, btnEl) {
+    if (!chActive || !chCurrentClip) return;
+    var correctAgent = chCurrentClip.agent;
+    var grid = $("chGrid");
+    grid.querySelectorAll(".mc-btn").forEach(function (b) {
+      b.disabled = true;
+      if (b.dataset.agent === correctAgent) b.classList.add("correct");
+      else if (b === btnEl) b.classList.add("wrong");
+    });
+    if (picked === correctAgent) {
+      chScore++;
+      $("chScoreLive").textContent = chScore;
+    }
+    chCurrentClip = null;
+    // Brief pause so the right/wrong flash above is actually visible
+    // before the next clip auto-plays — long enough to register, short
+    // enough that a 60-second round still feels fast-paced.
+    chAdvanceTimeoutId = setTimeout(function () {
+      if (!chActive) return;
+      if (!chPickRound()) chEndRound();
+    }, 260);
+  }
+
+  function chTick() {
+    chTimeLeft--;
+    $("chTimeLeft").textContent = Math.max(0, chTimeLeft);
+    if (chTimeLeft <= 0) chEndRound();
+  }
+
+  function chShowIntroOrNoPool() {
+    var enough = chAgentsInPool().length >= 2;
+    $("chNoPool").hidden = enough;
+    $("chIntro").hidden = !enough;
+    $("chRunning").hidden = true;
+    $("chEnd").hidden = true;
+  }
+
+  function chStart() {
+    if (chAgentsInPool().length < 2) { chShowIntroOrNoPool(); return; }
+    chActive = true;
+    chScore = 0;
+    chTimeLeft = CHALLENGE_DURATION;
+    chLastClipId = null;
+    $("chIntro").hidden = true;
+    $("chNoPool").hidden = true;
+    $("chEnd").hidden = true;
+    $("chRunning").hidden = false;
+    $("chTimeLeft").textContent = chTimeLeft;
+    $("chScoreLive").textContent = "0";
+    chPickRound();
+    chTimerId = setInterval(chTick, 1000);
+  }
+
+  function chEndRound() {
+    chActive = false;
+    if (chTimerId) { clearInterval(chTimerId); chTimerId = null; }
+    if (chAdvanceTimeoutId) { clearTimeout(chAdvanceTimeoutId); chAdvanceTimeoutId = null; }
+    try { chAudioEl.pause(); } catch (e) { /* ignore */ }
+    chCurrentClip = null;
+    $("chRunning").hidden = true;
+    $("chEnd").hidden = false;
+    $("chFinalScore").textContent = chScore;
+    chRenderSaveUI();
+  }
+
+  // Shows either "Save as <name>?" (already joined - same identity as the
+  // main leaderboard, see lbGetIdentity above) or a join form, matching
+  // whichever state the visitor is already in.
+  function chRenderSaveUI() {
+    var id = lbGetIdentity();
+    $("chSaveMsg").textContent = "";
+    $("chSaveMsg").className = "lb-msg";
+    $("chSaveJoined").hidden = !id;
+    $("chJoinForm").hidden = !!id;
+    if (id) $("chCurrentName2").textContent = id.name;
+  }
+
+  function submitChallengeScore(name, passphrase, onDone) {
+    fetch("/api/challenge", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: name, passphrase: passphrase, score: chScore })
+    }).then(function (r) {
+      if (r.status === 409) {
+        onDone("That name is already taken with a different passphrase.");
+        return;
+      }
+      if (r.status === 400) {
+        return r.json().catch(function () { return {}; }).then(function (data) {
+          onDone(data && data.error === "blocked_name"
+            ? "That name isn't allowed — try another."
+            : "Something didn't work — try again.");
+        });
+      }
+      onDone(null);
+    }).catch(function () {
+      onDone("Couldn't reach the leaderboard — try again in a moment.");
+    });
+  }
+
   // Best-effort: fires after every answered clip if this browser has
   // joined the leaderboard. Never blocks or errors visibly — local stats
   // (score.correct/wrong/streak above) already work regardless of whether
@@ -922,8 +1233,11 @@
     }).catch(function () { /* offline or not deployed yet — nothing else to do */ });
   }
 
-  var lbCache = { accuracy: null, streak: null, minAttempts: 20 };
-  var lbActiveTab = "accuracy";
+  var lbCache = { accuracy: null, streak: null, challenge: null, minAttempts: 20 };
+  // Defaults to the Challenge tab (per request) rather than accuracy -
+  // whichever tab a visitor last clicked stays selected for the rest of
+  // the session, same as before; this just picks the first-ever default.
+  var lbActiveTab = "challenge";
 
   function lbLoad() {
     $("lbErrorMsg").hidden = true;
@@ -935,6 +1249,7 @@
       .then(function (data) {
         lbCache.accuracy = Array.isArray(data.accuracy) ? data.accuracy : [];
         lbCache.streak = Array.isArray(data.streak) ? data.streak : [];
+        lbCache.challenge = Array.isArray(data.challenge) ? data.challenge : [];
         lbCache.minAttempts = data.minAttempts || 20;
         $("lbLoadingMsg").hidden = true;
         lbRenderList();
@@ -952,7 +1267,9 @@
     var rows = lbCache[lbActiveTab] || [];
     $("lbNote").textContent = lbActiveTab === "accuracy"
       ? "Minimum " + lbCache.minAttempts + " clips answered, using 5+ multiple-choice options."
-      : "Multiple-choice answers need 5+ options to count.";
+      : lbActiveTab === "streak"
+      ? "Multiple-choice answers need 5+ options to count."
+      : "Most correct guesses (2 choices) in a single 60-second Challenge Mode round.";
     $("lbEmptyMsg").hidden = rows.length > 0;
     rows.forEach(function (r, i) {
       var row = document.createElement("div");
@@ -974,8 +1291,11 @@
         sub.textContent = r.correct + "/" + r.total;
         row.appendChild(stat);
         row.appendChild(sub);
-      } else {
+      } else if (lbActiveTab === "streak") {
         stat.textContent = String(r.bestStreak);
+        row.appendChild(stat);
+      } else {
+        stat.textContent = String(r.bestChallenge);
         row.appendChild(stat);
       }
       wrap.appendChild(row);
@@ -1530,6 +1850,7 @@
     $("volumeSlider").addEventListener("input", function () {
       volume = clampInt(this.value, 0, 100);
       audioEl.volume = volume / 100;
+      chAudioEl.volume = volume / 100;
       $("volumeValue").textContent = volume + "%";
       safeLocalSet("vsteps.volume", String(volume));
     });
@@ -1713,6 +2034,125 @@
     });
     $("lbRetryBtn").addEventListener("click", lbLoad);
 
+    // ---- Challenge Mode ----
+    function openLeaderboardOnTab(tab) {
+      lbActiveTab = tab;
+      document.querySelectorAll("#lbTabs button").forEach(function (b) {
+        b.setAttribute("aria-pressed", b.dataset.tab === tab ? "true" : "false");
+      });
+      lbRenderIdentity();
+      lbLoad();
+      $("leaderboardModalOverlay").hidden = false;
+    }
+    $("openChallengeBtn").addEventListener("click", function () {
+      chShowIntroOrNoPool();
+      $("challengeModalOverlay").hidden = false;
+    });
+    function closeChallengeModal() {
+      $("challengeModalOverlay").hidden = true;
+      // Don't leave a round ticking down in the background if the visitor
+      // closes the modal mid-run - end it the same way running out of time
+      // would, so the end screen (and save prompt) show next time it's
+      // reopened instead of a stale "Running" state.
+      if (chActive) chEndRound();
+    }
+    $("closeChallengeBtn").addEventListener("click", closeChallengeModal);
+    $("challengeModalOverlay").addEventListener("click", function (e) {
+      if (e.target === $("challengeModalOverlay")) closeChallengeModal();
+    });
+    $("chStartBtn").addEventListener("click", chStart);
+    $("chPlayAgainBtn").addEventListener("click", chStart);
+    $("chViewBoardBtn").addEventListener("click", function () {
+      $("challengeModalOverlay").hidden = true;
+      openLeaderboardOnTab("challenge");
+    });
+    $("chSkipSaveBtn").addEventListener("click", function () {
+      $("challengeModalOverlay").hidden = true;
+    });
+    $("chSaveBtn").addEventListener("click", function () {
+      var id = lbGetIdentity();
+      if (!id) return;
+      $("chSaveBtn").disabled = true;
+      $("chSaveMsg").textContent = "Saving…";
+      $("chSaveMsg").className = "lb-msg";
+      submitChallengeScore(id.name, id.passphrase, function (err) {
+        $("chSaveBtn").disabled = false;
+        if (!err) {
+          $("chSaveMsg").textContent = "Saved!";
+          $("chSaveMsg").className = "lb-msg ok";
+          $("chSaveJoined").hidden = true;
+        } else {
+          $("chSaveMsg").textContent = err;
+          $("chSaveMsg").className = "lb-msg err";
+          if (err.indexOf("already taken") !== -1) {
+            // Same situation syncScoreToServer() handles for normal play -
+            // this name+passphrase no longer matches on the server.
+            lbClearIdentity();
+            chRenderSaveUI();
+          }
+        }
+      });
+    });
+    $("chJoinForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = $("chNameInput").value.trim();
+      var pass = $("chPassInput").value;
+      var msg = $("chSaveMsg");
+      if (!name || !pass) {
+        msg.textContent = "Enter both a name and a passphrase.";
+        msg.className = "lb-msg err";
+        return;
+      }
+      var submitBtn = $("chJoinForm").querySelector("button[type=submit]");
+      submitBtn.disabled = true;
+      msg.textContent = "Checking…";
+      msg.className = "lb-msg";
+      fetch("/api/identity", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: name, passphrase: pass })
+      }).then(function (r) {
+        if (r.status === 409) {
+          msg.textContent = "That name is already taken with a different passphrase — try another name, or the passphrase you used before.";
+          msg.className = "lb-msg err";
+          submitBtn.disabled = false;
+          return;
+        }
+        if (r.status === 400) {
+          return r.json().catch(function () { return {}; }).then(function (data) {
+            msg.textContent = data && data.error === "blocked_name"
+              ? "That name isn't allowed — try something else."
+              : "Something about that name or passphrase didn't work — try again.";
+            msg.className = "lb-msg err";
+            submitBtn.disabled = false;
+          });
+        }
+        // Joined (or verified) - same as the main leaderboard's join form,
+        // this also falls through here if the backend isn't deployed yet.
+        lbSetIdentity(name, pass);
+        submitChallengeScore(name, pass, function (err2) {
+          submitBtn.disabled = false;
+          if (!err2) {
+            msg.textContent = "Joined and saved!";
+            msg.className = "lb-msg ok";
+            $("chJoinForm").hidden = true;
+          } else {
+            msg.textContent = "Joined, but saving the score failed — try Save again.";
+            msg.className = "lb-msg err";
+            chRenderSaveUI();
+          }
+        });
+      }).catch(function () {
+        // Offline, or the leaderboard function isn't deployed yet - join
+        // locally so the rest of the site keeps working; the score just
+        // won't sync until the connection (or the backend) is back.
+        lbSetIdentity(name, pass);
+        msg.textContent = "Joined locally — couldn't reach the server to save the score.";
+        msg.className = "lb-msg err";
+        submitBtn.disabled = false;
+      });
+    });
+
     window.addEventListener("resize", sizeCanvas);
   }
 
@@ -1727,6 +2167,7 @@
   })();
 
   audioEl.volume = volume / 100;
+  chAudioEl.volume = volume / 100;
   $("volumeSlider").value = volume;
   $("volumeValue").textContent = volume + "%";
   $("requireSurfaceToggle").setAttribute("aria-pressed", requireSurface ? "true" : "false");

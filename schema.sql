@@ -15,12 +15,16 @@
 -- see functions/api/score.js for how it's checked.
 --
 -- correct/total track lifetime accuracy across every synced answer, and
--- best_streak is their best-ever streak - both accumulate across devices/
--- browsers as long as the same name+passphrase is used to sync.
+-- best_streak/best_challenge are their best-ever streak and best-ever
+-- Challenge Mode score - all three accumulate across devices/browsers as
+-- long as the same name+passphrase is used to sync.
 --
 -- Run this once against your D1 database (dashboard: D1 -> your database ->
 -- Console -> paste this -> Execute). See README.md's leaderboard section
--- for the full setup walkthrough.
+-- for the full setup walkthrough. If your database already exists from
+-- before Challenge Mode was added, CREATE TABLE IF NOT EXISTS below won't
+-- add the new column to it - run this one line in the Console instead:
+--   ALTER TABLE players ADD COLUMN best_challenge INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS players (
   name_key TEXT PRIMARY KEY,
@@ -29,6 +33,7 @@ CREATE TABLE IF NOT EXISTS players (
   correct INTEGER NOT NULL DEFAULT 0,
   total INTEGER NOT NULL DEFAULT 0,
   best_streak INTEGER NOT NULL DEFAULT 0,
+  best_challenge INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

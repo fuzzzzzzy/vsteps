@@ -23,6 +23,7 @@ normalize_clips.py        evens out clip volume across the whole library
 functions/api/report.js   optional: relays clip reports to a Discord channel (see below)
 functions/api/identity.js  optional: leaderboard - claims/verifies name+passphrase on join (see below)
 functions/api/score.js    optional: leaderboard - records a synced answer (see below)
+functions/api/challenge.js  optional: leaderboard - records a Challenge Mode score (see below)
 functions/api/leaderboard.js  optional: leaderboard - serves the top players (see below)
 schema.sql                the leaderboard's database table, for one-time setup (see below)
 functions/_middleware.js  redirects the old *.pages.dev address to the custom domain (see below)
@@ -340,10 +341,12 @@ the project.
 
 ## Leaderboard (optional)
 
-Tracks the top players by lifetime accuracy and by best-ever streak across
-*everyone* who's played, not just the current browser. This needs a real
-database — unlike the Discord report relay, there's no way around that,
-since a leaderboard's whole point is state shared across visitors.
+Tracks the top players by lifetime accuracy, by best-ever streak, and by
+best-ever Challenge Mode score (⚡ Challenge — guess the agent out of 2
+choices, most correct in 60 seconds) across *everyone* who's played, not
+just the current browser. This needs a real database — unlike the Discord
+report relay, there's no way around that, since a leaderboard's whole
+point is state shared across visitors.
 
 **Identity is intentionally lightweight**: a visitor picks a display name
 and a passphrase (via the 🏆 Leaderboard panel), which get remembered in
@@ -364,7 +367,7 @@ among friends; not a competitive-integrity guarantee.
    → paste the SQL below → **Execute**. This only needs to be done once.
 
    ```sql
-   CREATE TABLE IF NOT EXISTS players ( name_key TEXT PRIMARY KEY, display_name TEXT NOT NULL, passphrase_hash TEXT NOT NULL, correct INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, best_streak INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL );
+   CREATE TABLE IF NOT EXISTS players ( name_key TEXT PRIMARY KEY, display_name TEXT NOT NULL, passphrase_hash TEXT NOT NULL, correct INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, best_streak INTEGER NOT NULL DEFAULT 0, best_challenge INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL );
    ```
 
    Use this single-line version, not `schema.sql`'s — the dashboard's
@@ -375,22 +378,29 @@ among friends; not a competitive-integrity guarantee.
    still the source of truth for the table shape (and safe to run via
    `wrangler d1 execute` if you use the CLI, since that doesn't flatten
    newlines) — just don't paste it as-is into the Console box.
+
+   Already have a `players` table from before Challenge Mode existed?
+   `CREATE TABLE IF NOT EXISTS` above won't add the new column to it —
+   run this one line in the Console instead:
+   ```sql
+   ALTER TABLE players ADD COLUMN best_challenge INTEGER NOT NULL DEFAULT 0;
+   ```
 3. **Bind it to the Pages project.** Your `vsteps` Pages project →
    **Settings → Bindings → Add → D1 database binding** → variable name
    **`DB`** (this exact name — `functions/api/identity.js`,
-   `functions/api/score.js`, and `functions/api/leaderboard.js` all read
-   `env.DB`) → pick the database from step 1. Do this for Production (and
-   Preview too, if you use it).
+   `functions/api/score.js`, `functions/api/challenge.js`, and
+   `functions/api/leaderboard.js` all read `env.DB`) → pick the database
+   from step 1. Do this for Production (and Preview too, if you use it).
 4. **Redeploy** — push a commit, or **Retry deployment** on the latest one
    — so the Function picks up the new binding. Same gotcha as the Discord
    webhook variable: a binding added after a deployment doesn't apply
    retroactively to it.
 
-Until the `DB` binding exists, `/api/identity`, `/api/score`, and
-`/api/leaderboard` quietly 500 — the rest of the site, including each
-visitor's own local stats, keeps working fine either way, and "Join
-leaderboard" still works locally (it just can't verify the passphrase
-against anything yet).
+Until the `DB` binding exists, `/api/identity`, `/api/score`,
+`/api/challenge`, and `/api/leaderboard` quietly 500 — the rest of the
+site, including each visitor's own local stats, keeps working fine either
+way, and "Join leaderboard" still works locally (it just can't verify the
+passphrase against anything yet).
 
 ### Notes on the design
 
@@ -423,8 +433,9 @@ against anything yet).
   form.
 - New display names are checked against a small profanity/impersonation
   filter (`BLOCKED_SUBSTRINGS` in `functions/api/identity.js`, duplicated
-  in `functions/api/score.js` as a fallback — keep both in sync if you
-  edit one) before they're ever saved, so they can't show up on the
+  in `functions/api/score.js` and `functions/api/challenge.js` as a
+  fallback — keep all three in sync if you edit one) before they're ever
+  saved, so they can't show up on the
   public leaderboard at all. It lowercases the name, normalizes common
   leetspeak substitutions (`0`→o, `1`→i, `3`→e, etc.), and strips
   punctuation/spaces before matching, so simple evasion like `f.u.c.k` or
@@ -442,6 +453,20 @@ against anything yet).
   database. "Type answer" mode has no option count and always counts —
   typing the exact name from scratch is already harder than any
   multiple-choice count.
+- Challenge Mode (⚡ Challenge in the header) is a separate 60-second,
+  2-choice guessing game — its own game loop in `index.html`, entirely
+  independent of normal practice (own `<audio>` element, own clip-picking,
+  own score counter) so it can't interfere with normal practice state
+  sitting underneath the modal. Only the final tally is sent to the
+  server, once, when the visitor chooses to save it — nothing syncs per
+  answer the way normal practice does via `/api/score`. A submitted score
+  is clamped to `MAX_CHALLENGE_SCORE` in `functions/api/challenge.js` (a
+  generous ~1 correct guess per 0.3 seconds) purely as a sanity ceiling
+  against a buggy or malicious client, not real anti-cheat — see the
+  "honest caveat" above about client-reported stats in general. The
+  identity used to save a Challenge Mode score is the same name+passphrase
+  as the rest of the leaderboard (one identity, three stats), and the
+  Leaderboard panel opens to the Challenge tab by default.
 
 ## Notes
 
