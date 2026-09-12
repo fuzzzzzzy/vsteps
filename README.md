@@ -13,8 +13,12 @@ clips.json              the manifest: which audio file belongs to which agent/su
 clips/                   the actual audio files
 icons/                   optional real per-agent icon files (falls back to a drawn monogram);
                           also holds the site logo (logo_icon.webp) and the
-                          generated favicon.png built from it (see below)
+                          generated favicon.png / apple-touch-icon.png /
+                          icon-192.png / icon-512.png built from it (see below)
 og-image.png             link-preview image for shares (Discord/Twitter/etc.)
+manifest.json            PWA manifest (lets phones "Add to Home Screen"; see below)
+robots.txt               allows all crawlers, points them at sitemap.xml
+sitemap.xml              lists the site's page(s) for search engines
 build_manifest.py        regenerates clips.json by scanning clips/
 auto_split.py             auto-detects and cuts clips from a recording via silence gaps
 batch_split.py            runs auto_split.py over every recording in a folder at once
@@ -506,6 +510,27 @@ passphrase against anything yet).
   tag. If you replace the logo, regenerate `favicon.png` to match —
   it's just the new logo centered with ~18% padding on all sides over a
   `#0E8A79`, ~22%-corner-radius rounded square, exported at 256×256.
+- `icons/apple-touch-icon.png` (180×180), `icons/icon-192.png`, and
+  `icons/icon-512.png` are the same logo composited the same way, but
+  onto a plain *square* teal background with no rounded corners and no
+  transparency — iOS and Android apply their own corner rounding/masking
+  when a visitor adds the site to their home screen, and don't handle a
+  transparent background well, so these are separate flattened files
+  rather than reusing `favicon.png`. `apple-touch-icon.png` is referenced
+  directly in `index.html`'s `<head>`; the 192/512 pair is referenced
+  from `manifest.json`. Regenerate all three the same way (logo centered
+  with ~18% padding, flattened to RGB, no alpha) if you ever replace the
+  logo.
+- `manifest.json` is a standard PWA manifest — it's what lets a visitor
+  on mobile "Add to Home Screen" and get ValoStep's own icon/name instead
+  of a generic browser bookmark. `index.html` links it via
+  `<link rel="manifest">` and keeps its `<meta name="theme-color">` tag
+  synced to whichever theme is active (`updateThemeColorMeta()`, next to
+  the theme toggle's other JS) so the mobile browser chrome matches.
+- `robots.txt` and `sitemap.xml` are unopinionated defaults for search
+  engines — allow everything, and list the one page there is. Add more
+  `<url>` entries to the sitemap if the site ever grows additional pages,
+  and update both files' absolute URLs if the custom domain ever changes.
 - No per-file size cap other than whatever Cloudflare Pages enforces (at
   the time of writing, Pages allows very large individual asset files —
   well beyond what a footstep clip needs).

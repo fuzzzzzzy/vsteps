@@ -38,6 +38,19 @@
      the "Updating the logo" note in README.md if you replace the logo). -->
 <link rel="icon" type="image/png" href="icons/favicon.png">
 
+<!-- Same logo, composited onto a plain (non-rounded, opaque) teal square -
+     iOS/Android apply their own corner rounding and don't handle a
+     transparent background well, so these are separate flattened files
+     rather than reusing favicon.png. See the "Updating the logo" note in
+     README.md if you ever replace icons/logo_icon.webp - regenerate
+     these the same way. -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<!-- Kept in sync with the actual light/dark theme in effect by the theme
+     toggle's JS below (updateThemeColorMeta) - this default is just what
+     shows before that runs. -->
+<meta name="theme-color" content="#F1F4F2">
+
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
   :root {
@@ -391,8 +404,14 @@
     </div>
     <p class="tagline">Play a tagged footstep clip and call the agent. The same way you'd do it in-game.</p>
     <div class="header-actions">
-      <button type="button" class="header-cta" id="viewLeaderboardBtn">🏆 Leaderboard</button>
-      <a class="header-cta header-cta-outline" href="https://ko-fi.com/fuzzzzy" id="supportLink" target="_blank" rel="noopener">☕ Support me</a>
+      <button type="button" class="header-cta" id="viewLeaderboardBtn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 5H5a2 2 0 0 0 0 4h1.5"/><path d="M16 5h3a2 2 0 0 1 0 4h-1.5"/><path d="M12 13v3"/><path d="M9 20h6"/><path d="M10 16h4l.5 4h-5l.5-4z"/></svg>
+        Leaderboard
+      </button>
+      <a class="header-cta header-cta-outline" href="https://ko-fi.com/fuzzzzy" id="supportLink" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3c-.5 1 .5 1.5 0 3M12 3c-.5 1 .5 1.5 0 3"/></svg>
+        Support me
+      </a>
     </div>
     <div class="header-actions">
       <button type="button" class="header-cta header-cta-outline" id="openChallengeBtn">Start Challenge</button>
@@ -434,7 +453,7 @@
           <span class="dim mono" id="clipCounter" style="margin-left:auto; font-size:0.78rem;"></span>
         </div>
         <div class="volume-row">
-          <span aria-hidden="true">🔊</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none; color:var(--text-dim);"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>
           <input type="range" id="volumeSlider" min="0" max="100" step="1" value="80" aria-label="Playback volume">
           <span class="dim mono" id="volumeValue">80%</span>
         </div>
@@ -529,7 +548,7 @@
 
   <footer>
     <div>
-      <button type="button" class="link-btn" id="viewReportsBtn">🚩 Reported clips (<span id="reportCount">0</span>)</button>
+      <button type="button" class="link-btn" id="viewReportsBtn">Reported clips (<span id="reportCount">0</span>)</button>
     </div>
     <div class="dim" style="margin-top:10px; font-size:0.74rem;">
       This is a practice tool. Not affiliated or endorsed by Riot Games.
@@ -543,7 +562,7 @@
       <h2 style="font-size:1rem;">Reported clips</h2>
       <button type="button" class="link-btn" id="closeReportsBtn">close ✕</button>
     </div>
-    <div class="dim" id="reportsEmptyMsg" style="padding:12px 0;">No reports yet — clips you flag with 🚩 Report (or that fail to load, or play back silent) show up here.</div>
+    <div class="dim" id="reportsEmptyMsg" style="padding:12px 0;">No reports yet — clips you flag (or that fail to load, or play back silent) show up here.</div>
     <div id="reportsList"></div>
     <textarea id="reportsTextarea" readonly hidden style="width:100%; min-height:90px; margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:0.76rem; background:var(--surface-2); color:var(--text); border:1px solid var(--border); padding:8px;"></textarea>
     <div style="display:flex; gap:10px; margin-top:14px; justify-content:flex-end;">
@@ -594,7 +613,7 @@
 <div class="modal-overlay" id="challengeModalOverlay" hidden>
   <div class="modal-box">
     <div class="panel-head">
-      <h2 style="font-size:1rem;">⚡ Challenge Mode</h2>
+      <h2 style="font-size:1rem;">Challenge Mode</h2>
       <button type="button" class="link-btn" id="closeChallengeBtn">close ✕</button>
     </div>
 
@@ -604,9 +623,8 @@
 
     <div id="chIntro" style="text-align:center;">
       <p class="dim" style="font-size:0.85rem; margin-top:0;">
-        Multiple choice, 5 options — every agent and surface in the library
-        is in play, regardless of your practice filters below. Get as many
-        right as you can in 60 seconds.
+        Multiple choice with 5 options and every agent/surface in the library.
+        Get as many right as you can in 60 seconds.
       </p>
       <button type="button" class="btn btn-primary" id="chStartBtn" style="margin-top:24px;">Start Challenge</button>
     </div>
@@ -685,12 +703,24 @@
     btn.textContent = dark ? "Light mode" : "Dark mode";
     btn.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
   }
+  // Keeps the <meta name="theme-color"> tag (the browser chrome/status bar
+  // color on mobile) matching whichever theme is actually in effect, by
+  // reading the live --bg custom property straight off the CSS instead of
+  // duplicating its light/dark values here.
+  function updateThemeColorMeta() {
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) return;
+    var bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+    if (bg) meta.setAttribute("content", bg);
+  }
   updateThemeToggleIcon();
+  updateThemeColorMeta();
   $("themeToggleBtn").addEventListener("click", function () {
     var next = isDarkThemeActive() ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     safeLocalSet(THEME_KEY, next);
     updateThemeToggleIcon();
+    updateThemeColorMeta();
   });
 
   function normalize(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
