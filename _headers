@@ -20,5 +20,25 @@
 # which is great for security but painful to undo (removal can take months
 # to reach everyone), so it's worth adding only once you're fully confident
 # in the HTTPS setup. Both are one-line additions here later if you want them.
+#
+# X-Content-Type-Options stops a browser from "sniffing" a response's
+# content-type and running it as something more dangerous than what the
+# server declared (e.g. treating a user-uploaded text file as HTML/JS) -
+# there's no user-upload path here, but it's a free, zero-downside header.
+#
+# Referrer-Policy trims what gets sent in the Referer header on outbound
+# links (e.g. the ko-fi.com support link) to just the origin
+# ("https://www.valostep.win") instead of the full page URL with any query
+# string - there's nothing sensitive in this site's URLs today, but no
+# reason to leak more than the origin to a third-party site regardless.
+#
+# Permissions-Policy explicitly disables browser features this site never
+# uses (camera, microphone, geolocation) for every frame, including any
+# third-party content that ever ends up embedded here - closing off
+# capabilities that were never needed rather than leaving them at their
+# permissive defaults.
 /*
   Strict-Transport-Security: max-age=63072000
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

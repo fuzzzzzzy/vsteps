@@ -532,7 +532,37 @@ passphrase against anything yet).
   tells the browser to skip straight to HTTPS from then on. Deliberately
   left off `includeSubDomains` and `preload` — see the comment in the
   file for why — add either later once you're confident every subdomain
-  you'll ever use is HTTPS-only.
+  you'll ever use is HTTPS-only. It also sets `X-Content-Type-Options:
+  nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and a
+  `Permissions-Policy` disabling camera/microphone/geolocation — none of
+  which the site uses, so this just closes off capabilities it never
+  needed rather than leaving them at their permissive defaults.
+- `index.html`'s `<head>` has a `<link rel="canonical">` pointing at the
+  `www` URL — mostly redundant given the pages.dev/apex redirects in
+  `functions/_middleware.js` already send everyone there, but a one-line
+  belt-and-suspenders for search engines in case the page is ever
+  reachable at a URL that isn't. Update it alongside every other
+  hardcoded `https://www.valostep.win` reference if the domain changes.
+- The three modals (Reported clips, Leaderboard, Challenge Mode) are
+  marked up as accessible dialogs — `role="dialog"`, `aria-modal="true"`,
+  `aria-labelledby` pointing at each one's heading — and `openModal()`/
+  `closeModal()` in `index.html`'s script move keyboard focus into the
+  modal when it opens and back to whatever triggered it when it closes,
+  so a keyboard or screen-reader user isn't left with focus stranded on
+  a hidden button. Escape closes whichever modal is currently open (see
+  the keydown listener at the end of `wireEvents()`). The one wrinkle:
+  "View leaderboard" from the Challenge Mode end screen hands off the
+  *original* Challenge-opening trigger to `openModal()` rather than
+  itself, since it's about to be hidden — so closing the leaderboard
+  afterward still returns focus somewhere sensible.
+- When normal practice's clip pool comes up empty (`pickNextClip()` in
+  `index.html`), the message shown in the answer box now names the
+  actual reason instead of always blaming the agent toggles: "select at
+  least one agent" only when zero agents are active, "select at least
+  one surface" when zero surfaces are active, and "no clips available
+  for the agents/surfaces you've selected" when both have selections but
+  the library just doesn't have a matching clip (e.g. a real data gap,
+  or every surface a given agent's clips use happens to be toggled off).
 - The site logo is `icons/logo_icon.webp` (a white footstep mark, meant
   to sit on a colored background) — `index.html`'s header displays it
   directly on a teal CSS badge (`.brand-logo`). `icons/favicon.png` is a

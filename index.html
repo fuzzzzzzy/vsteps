@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ValoStep</title>
+<!-- Points search engines at the canonical www URL - mostly redundant given
+     the pages.dev/apex redirects in functions/_middleware.js already send
+     everyone there, but a one-line belt-and-suspenders in case the page is
+     ever reachable at a URL that isn't. Update alongside every other
+     hardcoded "https://www.valostep.win" reference if the domain changes. -->
+<link rel="canonical" href="https://www.valostep.win/">
 <!-- Applies a saved light/dark override (see the theme toggle near the end
      of the main <script>) before the page paints, so returning visitors who
      picked a theme don't see a flash of the wrong one first. With no saved
@@ -363,6 +369,11 @@
     background: var(--bg); border: 1px solid var(--border); padding: 20px;
     max-width: 560px; width: 100%; max-height: 82vh; overflow-y: auto;
   }
+  /* The box itself only ever receives focus programmatically (when a modal
+     opens - see openModal() in the script below), never by Tab, so the
+     default focus ring would just be a flash with nothing to indicate -
+     the modal's own visible border already shows where it is. */
+  .modal-box:focus { outline: none; }
   .report-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
   .report-row:last-child { border-bottom: none; }
   .report-row .meta { color: var(--text-dim); font-size: 0.74rem; margin-top: 2px; }
@@ -563,9 +574,9 @@
 </div>
 
 <div class="modal-overlay" id="reportsModalOverlay" hidden>
-  <div class="modal-box">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="reportsModalTitle" tabindex="-1">
     <div class="panel-head">
-      <h2 style="font-size:1rem;">Reported clips</h2>
+      <h2 id="reportsModalTitle" style="font-size:1rem;">Reported clips</h2>
       <button type="button" class="link-btn" id="closeReportsBtn">close ✕</button>
     </div>
     <div class="dim" id="reportsEmptyMsg" style="padding:12px 0;">No reports yet — clips you flag (or that fail to load, or play back silent) show up here.</div>
@@ -579,9 +590,9 @@
 </div>
 
 <div class="modal-overlay" id="leaderboardModalOverlay" hidden>
-  <div class="modal-box">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="leaderboardModalTitle" tabindex="-1">
     <div class="panel-head">
-      <h2 style="font-size:1rem;">Leaderboard</h2>
+      <h2 id="leaderboardModalTitle" style="font-size:1rem;">Leaderboard</h2>
       <button type="button" class="link-btn" id="closeLeaderboardBtn">close ✕</button>
     </div>
 
@@ -617,9 +628,9 @@
 </div>
 
 <div class="modal-overlay" id="challengeModalOverlay" hidden>
-  <div class="modal-box">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="challengeModalTitle" tabindex="-1">
     <div class="panel-head">
-      <h2 style="font-size:1rem;">Challenge Mode</h2>
+      <h2 id="challengeModalTitle" style="font-size:1rem;">Challenge Mode</h2>
       <button type="button" class="link-btn" id="closeChallengeBtn">close ✕</button>
     </div>
 
@@ -1731,7 +1742,22 @@
       $("playBtn").disabled = true;
       $("replayBtn").disabled = true;
       $("reportBtn").disabled = true;
-      renderNoPoolMessage("Select at least one agent above to start.");
+      // Distinguish *why* the pool is empty instead of always blaming the
+      // agent toggles - with every agent and surface selected, an empty
+      // pool means the library just doesn't have a clip for that
+      // combination (or at all), which "select at least one agent" would
+      // misleadingly imply is the visitor's fault to fix.
+      var activeAgentCount = agentList.filter(function (a) { return activeAgents[a]; }).length;
+      var activeSurfaceCount = surfaceList.filter(function (s) { return activeSurfaces[s]; }).length;
+      var noPoolMsg;
+      if (activeAgentCount === 0) {
+        noPoolMsg = "Select at least one agent above to start.";
+      } else if (activeSurfaceCount === 0) {
+        noPoolMsg = "Select at least one surface above to start.";
+      } else {
+        noPoolMsg = "No clips available for the agents/surfaces you've selected.";
+      }
+      renderNoPoolMessage(noPoolMsg);
       return;
     }
     // Pick the agent first, then a clip within that agent — picking
@@ -1926,6 +1952,26 @@
       });
   }
 
+  // ================= modal accessibility =================
+  // The three modals (.modal-box, marked role="dialog"/aria-modal in the
+  // HTML) don't get focus handling or Escape-to-close for free just from
+  // that role - this is the bit that actually moves keyboard focus into
+  // a modal when it opens and back to whatever opened it when it closes,
+  // so a keyboard or screen-reader user isn't left with focus still
+  // sitting on (or lost from) a now-hidden trigger button.
+  var modalTriggerEl = null;
+  function openModal(overlayEl, trigger) {
+    modalTriggerEl = trigger || document.activeElement;
+    overlayEl.hidden = false;
+    var box = overlayEl.querySelector(".modal-box");
+    if (box) box.focus();
+  }
+  function closeModal(overlayEl) {
+    overlayEl.hidden = true;
+    if (modalTriggerEl && typeof modalTriggerEl.focus === "function") modalTriggerEl.focus();
+    modalTriggerEl = null;
+  }
+
   // ================= wiring =================
   function wireEvents() {
     var modeBtns = document.querySelectorAll("#modeToggle button");
@@ -2029,13 +2075,13 @@
 
     $("viewReportsBtn").addEventListener("click", function () {
       renderReportsList();
-      $("reportsModalOverlay").hidden = false;
+      openModal($("reportsModalOverlay"));
     });
     $("closeReportsBtn").addEventListener("click", function () {
-      $("reportsModalOverlay").hidden = true;
+      closeModal($("reportsModalOverlay"));
     });
     $("reportsModalOverlay").addEventListener("click", function (e) {
-      if (e.target === $("reportsModalOverlay")) $("reportsModalOverlay").hidden = true;
+      if (e.target === $("reportsModalOverlay")) closeModal($("reportsModalOverlay"));
     });
     $("copyReportsBtn").addEventListener("click", function () {
       var textarea = $("reportsTextarea");
@@ -2073,13 +2119,13 @@
     $("viewLeaderboardBtn").addEventListener("click", function () {
       lbRenderIdentity();
       lbLoad();
-      $("leaderboardModalOverlay").hidden = false;
+      openModal($("leaderboardModalOverlay"));
     });
     $("closeLeaderboardBtn").addEventListener("click", function () {
-      $("leaderboardModalOverlay").hidden = true;
+      closeModal($("leaderboardModalOverlay"));
     });
     $("leaderboardModalOverlay").addEventListener("click", function (e) {
-      if (e.target === $("leaderboardModalOverlay")) $("leaderboardModalOverlay").hidden = true;
+      if (e.target === $("leaderboardModalOverlay")) closeModal($("leaderboardModalOverlay"));
     });
     $("lbIdentityForm").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -2160,21 +2206,21 @@
     $("lbRetryBtn").addEventListener("click", lbLoad);
 
     // ---- Challenge Mode ----
-    function openLeaderboardOnTab(tab) {
+    function openLeaderboardOnTab(tab, trigger) {
       lbActiveTab = tab;
       document.querySelectorAll("#lbTabs button").forEach(function (b) {
         b.setAttribute("aria-pressed", b.dataset.tab === tab ? "true" : "false");
       });
       lbRenderIdentity();
       lbLoad();
-      $("leaderboardModalOverlay").hidden = false;
+      openModal($("leaderboardModalOverlay"), trigger);
     }
     $("openChallengeBtn").addEventListener("click", function () {
       chShowIntroOrNoPool();
-      $("challengeModalOverlay").hidden = false;
+      openModal($("challengeModalOverlay"));
     });
     function closeChallengeModal() {
-      $("challengeModalOverlay").hidden = true;
+      closeModal($("challengeModalOverlay"));
       // Don't leave a round ticking down in the background if the visitor
       // closes the modal mid-run - end it the same way running out of time
       // would, so the end screen (and save prompt) show next time it's
@@ -2189,11 +2235,16 @@
     $("chPlayAgainBtn").addEventListener("click", chStart);
     $("chReplayBtn").addEventListener("click", playChCurrentClip);
     $("chViewBoardBtn").addEventListener("click", function () {
-      $("challengeModalOverlay").hidden = true;
-      openLeaderboardOnTab("challenge");
+      // Hand off to whoever originally opened Challenge Mode, so closing
+      // the leaderboard afterward returns focus there instead of to
+      // document.body (closeModal() below would otherwise capture this
+      // button as the trigger, but it's about to be hidden).
+      var originalTrigger = modalTriggerEl;
+      closeModal($("challengeModalOverlay"));
+      openLeaderboardOnTab("challenge", originalTrigger);
     });
     $("chSkipSaveBtn").addEventListener("click", function () {
-      $("challengeModalOverlay").hidden = true;
+      closeModal($("challengeModalOverlay"));
     });
     $("chSaveBtn").addEventListener("click", function () {
       var id = lbGetIdentity();
@@ -2280,6 +2331,17 @@
     });
 
     window.addEventListener("resize", sizeCanvas);
+
+    // Escape closes whichever modal is currently open. Only one of these
+    // is ever visible at once (nothing here stacks modals), so checking
+    // each in turn and closing the first one found is enough - no need to
+    // track a stack.
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      if (!$("reportsModalOverlay").hidden) { closeModal($("reportsModalOverlay")); return; }
+      if (!$("challengeModalOverlay").hidden) { closeChallengeModal(); return; }
+      if (!$("leaderboardModalOverlay").hidden) { closeModal($("leaderboardModalOverlay")); return; }
+    });
   }
 
   (function populateTypeSurfaceSelect() {
