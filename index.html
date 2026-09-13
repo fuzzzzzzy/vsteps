@@ -344,7 +344,13 @@
   .feedback.wrong { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 
   /* ---- stat HUD ---- */
-  .stat-hud { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  /* Split into two side-by-side groups - Correct/Wrong/Accuracy as the
+     main set, Streak/Best streak set apart to the side as a distinct
+     callout - rather than one continuous 5-tile row. */
+  .stat-row { display: flex; gap: 12px; }
+  .stat-hud { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  .stat-primary { grid-template-columns: repeat(3, 1fr); flex: 3 1 0; }
+  .stat-secondary { grid-template-columns: repeat(2, 1fr); flex: 2 1 0; }
   .stat-tile { background: var(--surface); padding: 12px 8px; text-align: center; }
   .stat-tile .v { font-family: "IBM Plex Mono", monospace; font-size: 1.4rem; font-weight: 600; }
   .stat-tile .k { font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
@@ -402,7 +408,7 @@
   .lb-msg.ok { color: var(--accent-strong); }
 
   @media (max-width: 460px) {
-    .stat-hud { grid-template-columns: repeat(3, 1fr); }
+    .stat-row { flex-direction: column; }
     .mc-grid .mc-btn { flex-basis: 100%; max-width: 100%; }
   }
 </style>
@@ -497,6 +503,26 @@
           </div>
         </div>
 
+        <!-- Kept up here (not just after the grid below) so both are
+             visible right after answering without scrolling past the
+             grid or the Agents/Surfaces panel underneath - the whole
+             point of putting a clip's outcome and the way to move on
+             right where a visitor's eyes already are. -->
+        <div class="stat-row" style="margin-bottom:14px;">
+          <div class="stat-hud stat-primary">
+            <div class="stat-tile"><div class="v mono" id="statCorrect">0</div><div class="k">Correct</div></div>
+            <div class="stat-tile"><div class="v mono" id="statWrong">0</div><div class="k">Wrong</div></div>
+            <div class="stat-tile"><div class="v mono" id="statAccuracy">—</div><div class="k">Accuracy</div></div>
+          </div>
+          <div class="stat-hud stat-secondary">
+            <div class="stat-tile"><div class="v mono" id="statStreak">0</div><div class="k">Streak</div></div>
+            <div class="stat-tile"><div class="v mono" id="statBest">0</div><div class="k">Best streak</div></div>
+          </div>
+        </div>
+        <div style="margin-bottom:14px; display:flex; justify-content:flex-end;">
+          <button class="btn" id="nextBtn" hidden>Next clip →</button>
+        </div>
+
         <div id="mcArea">
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
             <div class="dim" id="mcAgentLabel" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;" hidden>Agent</div>
@@ -523,10 +549,6 @@
         </div>
 
         <div class="feedback mono" id="feedback" style="margin-top:12px;"></div>
-
-        <div style="margin-top:14px; display:flex; justify-content:flex-end;">
-          <button class="btn" id="nextBtn" hidden>Next clip →</button>
-        </div>
       </div>
 
       <div class="panel">
@@ -549,14 +571,6 @@
           </div>
         </div>
         <div class="chip-grid" id="surfaceChips"></div>
-      </div>
-
-      <div class="stat-hud">
-        <div class="stat-tile"><div class="v mono" id="statCorrect">0</div><div class="k">Correct</div></div>
-        <div class="stat-tile"><div class="v mono" id="statWrong">0</div><div class="k">Wrong</div></div>
-        <div class="stat-tile"><div class="v mono" id="statAccuracy">—</div><div class="k">Accuracy</div></div>
-        <div class="stat-tile"><div class="v mono" id="statStreak">0</div><div class="k">Streak</div></div>
-        <div class="stat-tile"><div class="v mono" id="statBest">0</div><div class="k">Best streak</div></div>
       </div>
     </div>
   </section>
