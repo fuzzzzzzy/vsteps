@@ -83,6 +83,14 @@
     --shadow: 0 1px 2px rgba(16, 24, 26, 0.06), 0 8px 24px rgba(16, 24, 26, 0.05);
     --cut: 14px;
     --cut-sm: 8px;
+    /* Read by JS (see makeAgentBadge's call site for #mcGrid) so the
+       multiple-choice agent portraits actually shrink under the
+       fit-to-screen tiers below instead of a CSS-only rule silently
+       losing to the inline width/height makeAgentBadge sets on each
+       badge it creates - inline styles always beat a class selector,
+       media query or not, so this is the one piece of that sizing
+       that has to be a variable JS reads rather than a plain rule. */
+    --mc-badge-size: 42px;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -201,6 +209,14 @@
     .wrap { max-width: 1120px; }
     .practice-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; gap: 18px; }
     .sidebar-panel { position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto; }
+    /* Match the header's CTA row to the width practice-col actually
+       renders at (wrap's 1fr column, minus the sidebar and the gap
+       between them) instead of leaving it at its own small intrinsic
+       width - centered pill buttons in a sea of side padding looked
+       like an afterthought once the page got this much wider for the
+       sidebar. Each button then flex-fills its row evenly. */
+    .header-actions { width: 100%; max-width: calc(100% - 320px - 18px); margin-left: 0; margin-right: auto; }
+    .header-actions .header-cta { flex: 1 1 0; justify-content: center; }
   }
 
   /* ---- waveform / player ---- */
@@ -307,7 +323,7 @@
     clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
     cursor: pointer;
   }
-  .mc-btn .agent-badge { width: 42px; height: 42px; font-size: 1rem; }
+  .mc-btn .agent-badge { width: var(--mc-badge-size); height: var(--mc-badge-size); font-size: calc(var(--mc-badge-size) * 0.38); }
   .mc-btn:hover:not(:disabled) { border-color: var(--accent); }
   .mc-btn.picked { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .mc-btn.correct { background: var(--success-bg); border-color: var(--success); color: var(--success); }
@@ -449,30 +465,66 @@
      On a short viewport the page's default spacing pushes the answer
      grid below the fold, so opening the site for the first time means
      scrolling before you can even see the multiple-choice buttons. The
-     1080px cutoff below looks generous but isn't: a maximized
-     browser window on an ordinary 1920x1080 monitor only hands the page
+     1080px cutoff below looks generous but isn't: a maximized browser
+     window on an ordinary 1920x1080 monitor only hands the page
      something like 920-1000px of actual content height once the tab
      strip and address bar are subtracted - by far the single most
      common desktop case - so the threshold has to sit comfortably above
-     1000px or that everyday case falls through and gets the full-size,
-     non-fitting layout instead. These two tiers shrink padding, gaps
-     and font sizes (never the click targets enough to matter, and never
-     the content itself) so the header, the audio player, and the answer
-     panel - including its stat row, Next button and the full
-     multiple-choice grid - all fit above the fold on a maximized
-     1920x1080 window, common laptop sizes, and phones. Only genuinely
-     tall viewports (a bigger monitor, or a window taller than
-     1920x1080) are unaffected and keep the original, more spacious
-     layout. */
+     1000px or that everyday case falls through to the full-size,
+     non-fitting layout.
+
+     Three progressive tiers rather than one flat cutoff, because that
+     everyday maximized-1080p case and a genuinely cramped window need
+     different amounts of squeezing: a light touch comfortably clears
+     920-1000px on its own (this first tier), so it's what a maximized
+     1080p window gets - the Signal scope and the multiple-choice agent
+     badges stay close to full size. A shorter window (700-900px, a
+     smaller laptop display or a browser that isn't maximized) needs
+     real shrinkage on top of that to still clear the fold, and the
+     shortest windows (700px and under, plus any narrow phone) need
+     the most. Since later media queries win ties, each tier only lists
+     what it changes beyond the one before it - a 750px-tall window
+     picks up the light tier's rules AND the medium tier's overrides.
+     Only genuinely tall viewports (900-1080px+) skip all three and
+     keep the original, most spacious layout. */
   @media (max-height: 1080px), (max-width: 480px) {
-    body { padding: 6px 16px 36px; }
-    .wrap { gap: 10px; }
-    header { gap: 6px; }
-    .brand { gap: 8px; }
+    body { padding: 8px 16px 36px; }
+    .wrap { gap: 12px; }
+    header { gap: 8px; }
+    .brand { gap: 10px; }
+    .brand-logo { width: 38px; height: 38px; padding: 7px; }
+    header h1 { font-size: clamp(1.45rem, 1.2rem + 1.2vw, 1.9rem); }
+    .theme-toggle { height: 36px; padding: 0 14px; font-size: 0.82rem; }
+    .header-actions { margin-top: 2px; gap: 10px; }
+    .header-cta { padding: 10px 20px; font-size: 0.92rem; gap: 7px; }
+    .panel { padding: 14px; }
+    .panel-head { margin-bottom: 10px; }
+    .player-panel { gap: 10px; }
+    .scope { height: 96px; }
+    .player-controls { gap: 10px; }
+    .btn { padding: 9px 16px; font-size: 0.88rem; }
+    .volume-row { margin-top: 6px; gap: 8px; }
+    .segmented button { padding: 6px 12px; font-size: 0.8rem; }
+    .stat-row { gap: 10px; margin-bottom: 8px; }
+    .stat-tile { padding: 8px 6px; }
+    .stat-tile .v { font-size: 1.2rem; }
+    .stat-tile .k { font-size: 0.62rem; }
+    #nextBtn { margin-bottom: 8px; }
+    .mc-options-row { margin-bottom: 6px; }
+    .mc-grid { gap: 8px; }
+    .mc-btn { padding: 11px 8px; gap: 6px; font-size: 0.82rem; }
+    :root { --mc-badge-size: 38px; }
+  }
+  /* A maximized browser on an ordinary 1080p monitor only needs the
+     light touch above - there's ~800px of real content height to work
+     with once its layout is this compact, comfortably inside the
+     920-1000px that case actually gets. A genuinely shorter window
+     (a smaller laptop display, or a browser not maximized) needs more
+     of a squeeze to still clear the fold, so this tier layers on extra
+     shrinkage between 700 and 900px of height specifically. */
+  @media (max-height: 900px) {
     .brand-logo { width: 32px; height: 32px; padding: 6px; }
-    header h1 { font-size: clamp(1.3rem, 1.05rem + 1.1vw, 1.7rem); }
     .theme-toggle { height: 32px; padding: 0 12px; font-size: 0.78rem; }
-    .header-actions { margin-top: 2px; gap: 8px; }
     .header-cta { padding: 8px 16px; font-size: 0.86rem; gap: 6px; }
     .panel { padding: 10px; }
     .panel-head { margin-bottom: 8px; }
@@ -480,8 +532,6 @@
     .scope { height: 56px; }
     .player-controls { gap: 8px; }
     .btn { padding: 7px 14px; font-size: 0.82rem; }
-    .volume-row { margin-top: 4px; gap: 8px; }
-    .segmented button { padding: 5px 10px; font-size: 0.78rem; }
     .stat-row { gap: 8px; margin-bottom: 6px; }
     .stat-tile { padding: 5px 5px; }
     .stat-tile .v { font-size: 1rem; }
@@ -490,7 +540,7 @@
     .mc-options-row { margin-bottom: 4px; }
     .mc-grid { gap: 6px; }
     .mc-btn { padding: 7px 7px; gap: 4px; font-size: 0.76rem; }
-    .mc-btn .agent-badge { width: 28px; height: 28px; font-size: 0.78rem; }
+    :root { --mc-badge-size: 28px; }
   }
   @media (max-height: 700px), (max-width: 400px) {
     body { padding: 4px 12px 24px; }
@@ -513,7 +563,7 @@
     .mc-options-row { margin-bottom: 2px; }
     .mc-grid { gap: 6px; }
     .mc-btn { padding: 5px 5px; gap: 3px; font-size: 0.74rem; }
-    .mc-btn .agent-badge { width: 22px; height: 22px; font-size: 0.68rem; }
+    :root { --mc-badge-size: 22px; }
   }
 </style>
 </head>
@@ -1738,13 +1788,19 @@
       }
       var grid = $("mcGrid");
       grid.innerHTML = "";
+      // Read from the --mc-badge-size custom property (set by the
+      // fit-to-screen tiers in <style>) rather than a hardcoded size -
+      // makeAgentBadge sets width/height as an inline style, which
+      // would otherwise always beat a plain CSS rule for .agent-badge
+      // regardless of which media query matched.
+      var mcBadgeSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--mc-badge-size"), 10) || 42;
       options.forEach(function (a) {
         var b = document.createElement("button");
         b.type = "button";
         b.className = "mc-btn";
         b.dataset.agent = a;
         b.setAttribute("aria-label", a);
-        b.appendChild(makeAgentBadge(a, 42));
+        b.appendChild(makeAgentBadge(a, mcBadgeSize));
         var cap = document.createElement("span");
         cap.className = "mc-name";
         cap.textContent = a;

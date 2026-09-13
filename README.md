@@ -601,17 +601,29 @@ passphrase against anything yet).
   quiz logic, scoring, the "require surface" and "option count" settings
   (both saved per-visitor in their browser's local storage), and the
   audio-reactive waveform visualizer.
-- Two `@media (max-height: ...)` breakpoints in `index.html`'s `<style>`
-  (also triggered by narrow width, so phones get the same treatment
-  regardless of their exact viewport height) shrink padding, gaps, and
-  font sizes on a short viewport — a typical laptop browser window, or a
-  phone — so the header, audio player, and the whole Answer mode panel
-  (stats, Next button, and the multiple-choice grid) fit above the fold
-  on first load instead of requiring a scroll before you can even see
-  the answer buttons. Wide, tall screens are untouched. The Agents/
-  Surfaces rotation panel below is left scrollable on purpose — that's
-  one-time setup, not the part you need visible every round. If you add
-  new controls to the header or the answer panel, add matching rules to
-  both tiers (search for "fit-to-screen scaling") or they'll fall back
-  to full size and can push the grid below the fold again on a short
-  screen.
+- Three progressive `@media (max-height: ...)` breakpoints in
+  `index.html`'s `<style>` (also triggered by narrow width, so phones get
+  the same treatment regardless of their exact viewport height) shrink
+  padding, gaps, and font sizes on a short viewport — a typical laptop
+  browser window, or a phone — so the header, audio player, and the
+  whole Answer mode panel (stats, Next button, and the multiple-choice
+  grid) fit above the fold on first load instead of requiring a scroll
+  before you can even see the answer buttons. Each tier only lists what
+  it changes beyond the one before it (later media queries win ties), so
+  a short window picks up every lighter tier's rules plus its own extra
+  shrinkage; a maximized 1080p window gets only the lightest touch and
+  stays close to full size, while a 700px-and-under window or narrow
+  phone gets the most aggressive tier. Wide, tall screens are untouched.
+  The multiple-choice agent badge size is threaded through a
+  `--mc-badge-size` CSS custom property on `:root` (each tier just
+  reassigns it) rather than a plain `.agent-badge` rule, because
+  `makeAgentBadge()` sets width/height as inline styles in JS — an
+  inline style always wins over a stylesheet rule regardless of media
+  query, so a size change has to go through the variable the JS itself
+  reads. The Agents/Surfaces rotation panel (a sticky sidebar at 1040px
+  and wider, stacked below the practice column otherwise) is left
+  scrollable on purpose — that's one-time setup, not the part you need
+  visible every round. If you add new controls to the header or the
+  answer panel, add matching rules to all three tiers (search for
+  "fit-to-screen scaling") or they'll fall back to full size and can
+  push the grid below the fold again on a short screen.
