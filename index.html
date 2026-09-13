@@ -275,6 +275,7 @@
   .link-btn { background: none; border: none; color: var(--accent); font-size: 0.78rem; font-family: "IBM Plex Mono", monospace; cursor: pointer; padding: 0; }
 
   /* ---- answer area ---- */
+  .mc-options-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   /* flex (not grid) so a half-empty last row centers instead of hugging the left edge */
   .mc-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
   .mc-grid .mc-btn { flex: 0 0 calc((100% - 10px) / 2); max-width: calc((100% - 10px) / 2); }
@@ -454,6 +455,7 @@
     .stat-tile .v { font-size: 1rem; }
     .stat-tile .k { font-size: 0.58rem; }
     .next-btn-row { margin-bottom: 6px; }
+    .mc-options-row { margin-bottom: 4px; }
     .mc-grid { gap: 6px; }
     .mc-btn { padding: 7px 7px; gap: 4px; font-size: 0.76rem; }
     .mc-btn .agent-badge { width: 28px; height: 28px; font-size: 0.78rem; }
@@ -476,6 +478,7 @@
     .stat-tile .v { font-size: 0.85rem; }
     .stat-tile .k { font-size: 0.56rem; }
     .next-btn-row { margin-bottom: 6px; }
+    .mc-options-row { margin-bottom: 2px; }
     .mc-grid { gap: 6px; }
     .mc-btn { padding: 5px 5px; gap: 3px; font-size: 0.74rem; }
     .mc-btn .agent-badge { width: 22px; height: 22px; font-size: 0.68rem; }
@@ -593,7 +596,7 @@
         </div>
 
         <div id="mcArea">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div class="mc-options-row">
             <div class="dim" id="mcAgentLabel" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;" hidden>Agent</div>
             <label class="dim mono" style="display:flex; align-items:center; gap:6px; font-size:0.76rem; margin-left:auto;">
               Options
