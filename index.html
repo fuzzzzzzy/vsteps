@@ -184,6 +184,25 @@
   }
   .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 
+  /* ---- practice layout / sidebar ----
+     Below sidebar-breakpoint, everything is one stacked column (the
+     original layout) - the player, the answer panel, then Agents/
+     Surfaces last, same as scrolling down a single page. At the
+     breakpoint and up there's room to give Agents/Surfaces its own
+     column beside the player+answer column instead of trailing below
+     it, so it's visible right away rather than something you scroll
+     down past. .wrap widens to match at the same breakpoint - only
+     practice-main needs the extra room, but widening the whole
+     container is simpler than giving practice-main its own max-width
+     and keeps the header/footer optically centered over it. */
+  .practice-main { display: flex; flex-direction: column; gap: 18px; }
+  .practice-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  @media (min-width: 1040px) {
+    .wrap { max-width: 1120px; }
+    .practice-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; gap: 18px; }
+    .sidebar-panel { position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto; }
+  }
+
   /* ---- waveform / player ---- */
   .player-panel { display: flex; flex-direction: column; gap: 16px; }
   .scope {
@@ -543,7 +562,8 @@
       <div class="dim" id="practiceEmptyHint">Check back later — the clip library is empty at the moment.</div>
     </div>
 
-    <div id="practiceMain" hidden style="display:flex; flex-direction:column; gap:18px;">
+    <div id="practiceMain" class="practice-main" hidden>
+     <div class="practice-col">
 
       <div class="panel player-panel">
         <div class="scope">
@@ -635,8 +655,9 @@
 
         <div class="feedback mono" id="feedback" style="margin-top:12px;"></div>
       </div>
+     </div>
 
-      <div class="panel">
+      <div class="panel sidebar-panel">
         <div class="filter-row" style="margin-bottom:10px;">
           <h2 style="font-size:1rem;">Agents in rotation</h2>
           <div>
