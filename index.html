@@ -427,17 +427,25 @@
   }
 
   /* ---- fit-to-screen scaling ----
-     On a short viewport (a typical laptop window, or a phone/tablet in
-     landscape) the page's default spacing pushes the answer grid below
-     the fold, so opening the site for the first time means scrolling
-     before you can even see the multiple-choice buttons. These two
-     tiers shrink padding, gaps and font sizes (never the click targets
-     enough to matter, and never the content itself) so the header, the
-     audio player, and the answer panel - including its stat row, Next
-     button and the full multiple-choice grid - all fit above the fold
-     on common laptop and phone screen heights. Wide, tall screens are
-     unaffected and keep the original, more spacious layout. */
-  @media (max-height: 900px), (max-width: 480px) {
+     On a short viewport the page's default spacing pushes the answer
+     grid below the fold, so opening the site for the first time means
+     scrolling before you can even see the multiple-choice buttons. The
+     1080px cutoff below looks generous but isn't: a maximized
+     browser window on an ordinary 1920x1080 monitor only hands the page
+     something like 920-1000px of actual content height once the tab
+     strip and address bar are subtracted - by far the single most
+     common desktop case - so the threshold has to sit comfortably above
+     1000px or that everyday case falls through and gets the full-size,
+     non-fitting layout instead. These two tiers shrink padding, gaps
+     and font sizes (never the click targets enough to matter, and never
+     the content itself) so the header, the audio player, and the answer
+     panel - including its stat row, Next button and the full
+     multiple-choice grid - all fit above the fold on a maximized
+     1920x1080 window, common laptop sizes, and phones. Only genuinely
+     tall viewports (a bigger monitor, or a window taller than
+     1920x1080) are unaffected and keep the original, more spacious
+     layout. */
+  @media (max-height: 1080px), (max-width: 480px) {
     body { padding: 6px 16px 36px; }
     .wrap { gap: 10px; }
     header { gap: 6px; }
