@@ -347,13 +347,14 @@
   /* Split into two side-by-side groups - Correct/Wrong/Accuracy as the
      main set, Streak/Best streak set apart to the side as a distinct
      callout - rather than one continuous 5-tile row. */
-  .stat-row { display: flex; gap: 12px; }
+  .stat-row { display: flex; gap: 12px; margin-bottom: 14px; }
   .stat-hud { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); }
   .stat-primary { grid-template-columns: repeat(3, 1fr); flex: 3 1 0; }
   .stat-secondary { grid-template-columns: repeat(2, 1fr); flex: 2 1 0; }
   .stat-tile { background: var(--surface); padding: 12px 8px; text-align: center; }
   .stat-tile .v { font-family: "IBM Plex Mono", monospace; font-size: 1.4rem; font-weight: 600; }
   .stat-tile .k { font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+  .next-btn-row { margin-bottom: 14px; display: flex; justify-content: flex-end; }
 
   /* ---- empty / notice states ---- */
   .notice { padding: 26px 20px; text-align: center; color: var(--text-dim); display: flex; flex-direction: column; gap: 8px; align-items: center; }
@@ -407,9 +408,77 @@
   .lb-msg.err { color: var(--danger); }
   .lb-msg.ok { color: var(--accent-strong); }
 
+  /* Narrow phone widths used to stack the stat row and drop the answer
+     grid to one button per row - readable, but on a phone (always a
+     short viewport too, once you count the browser's own address bar
+     and nav chrome) it also means a much taller page, pushing the
+     grid below the fold on first load. The 2-column/side-by-side shape
+     from wider screens fits a phone screen just as legibly at the
+     smaller sizes the tiers above already apply, so keep it here too. */
   @media (max-width: 460px) {
-    .stat-row { flex-direction: column; }
-    .mc-grid .mc-btn { flex-basis: 100%; max-width: 100%; }
+    .stat-row { flex-direction: row; }
+    .mc-grid .mc-btn { flex: 0 0 calc((100% - 8px) / 2); max-width: calc((100% - 8px) / 2); }
+  }
+
+  /* ---- fit-to-screen scaling ----
+     On a short viewport (a typical laptop window, or a phone/tablet in
+     landscape) the page's default spacing pushes the answer grid below
+     the fold, so opening the site for the first time means scrolling
+     before you can even see the multiple-choice buttons. These two
+     tiers shrink padding, gaps and font sizes (never the click targets
+     enough to matter, and never the content itself) so the header, the
+     audio player, and the answer panel - including its stat row, Next
+     button and the full multiple-choice grid - all fit above the fold
+     on common laptop and phone screen heights. Wide, tall screens are
+     unaffected and keep the original, more spacious layout. */
+  @media (max-height: 900px), (max-width: 480px) {
+    body { padding: 12px 16px 36px; }
+    .wrap { gap: 10px; }
+    header { gap: 6px; }
+    .brand { gap: 8px; }
+    .brand-logo { width: 32px; height: 32px; padding: 6px; }
+    header h1 { font-size: clamp(1.3rem, 1.05rem + 1.1vw, 1.7rem); }
+    .theme-toggle { height: 32px; padding: 0 12px; font-size: 0.78rem; }
+    .header-actions { margin-top: 2px; gap: 8px; }
+    .header-cta { padding: 8px 16px; font-size: 0.86rem; gap: 6px; }
+    .panel { padding: 10px; }
+    .panel-head { margin-bottom: 8px; }
+    .player-panel { gap: 8px; }
+    .scope { height: 56px; }
+    .player-controls { gap: 8px; }
+    .btn { padding: 7px 14px; font-size: 0.82rem; }
+    .volume-row { margin-top: 4px; gap: 8px; }
+    .segmented button { padding: 5px 10px; font-size: 0.78rem; }
+    .stat-row { gap: 8px; margin-bottom: 6px; }
+    .stat-tile { padding: 5px 5px; }
+    .stat-tile .v { font-size: 1rem; }
+    .stat-tile .k { font-size: 0.58rem; }
+    .next-btn-row { margin-bottom: 6px; }
+    .mc-grid { gap: 6px; }
+    .mc-btn { padding: 7px 7px; gap: 4px; font-size: 0.76rem; }
+    .mc-btn .agent-badge { width: 28px; height: 28px; font-size: 0.78rem; }
+  }
+  @media (max-height: 700px), (max-width: 400px) {
+    body { padding: 8px 12px 24px; }
+    .wrap { gap: 6px; }
+    header { gap: 4px; }
+    .brand-logo { width: 28px; height: 28px; padding: 5px; }
+    header h1 { font-size: clamp(1.1rem, 0.95rem + 0.8vw, 1.4rem); }
+    .theme-toggle { height: 28px; padding: 0 10px; font-size: 0.74rem; }
+    .header-actions { gap: 6px; }
+    .header-cta { padding: 6px 12px; font-size: 0.8rem; }
+    .panel { padding: 8px; }
+    .scope { height: 40px; }
+    .scope .scope-label, .scope .scope-status { font-size: 0.6rem; }
+    .btn { padding: 6px 12px; font-size: 0.78rem; }
+    .stat-row { gap: 6px; margin-bottom: 6px; }
+    .stat-tile { padding: 4px 3px; }
+    .stat-tile .v { font-size: 0.85rem; }
+    .stat-tile .k { font-size: 0.56rem; }
+    .next-btn-row { margin-bottom: 6px; }
+    .mc-grid { gap: 6px; }
+    .mc-btn { padding: 5px 5px; gap: 3px; font-size: 0.74rem; }
+    .mc-btn .agent-badge { width: 22px; height: 22px; font-size: 0.68rem; }
   }
 </style>
 </head>
@@ -508,7 +577,7 @@
              grid or the Agents/Surfaces panel underneath - the whole
              point of putting a clip's outcome and the way to move on
              right where a visitor's eyes already are. -->
-        <div class="stat-row" style="margin-bottom:14px;">
+        <div class="stat-row">
           <div class="stat-hud stat-primary">
             <div class="stat-tile"><div class="v mono" id="statCorrect">0</div><div class="k">Correct</div></div>
             <div class="stat-tile"><div class="v mono" id="statWrong">0</div><div class="k">Wrong</div></div>
@@ -519,7 +588,7 @@
             <div class="stat-tile"><div class="v mono" id="statBest">0</div><div class="k">Best streak</div></div>
           </div>
         </div>
-        <div style="margin-bottom:14px; display:flex; justify-content:flex-end;">
+        <div class="next-btn-row">
           <button class="btn" id="nextBtn" hidden>Next clip →</button>
         </div>
 

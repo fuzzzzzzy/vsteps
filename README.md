@@ -601,3 +601,17 @@ passphrase against anything yet).
   quiz logic, scoring, the "require surface" and "option count" settings
   (both saved per-visitor in their browser's local storage), and the
   audio-reactive waveform visualizer.
+- Two `@media (max-height: ...)` breakpoints in `index.html`'s `<style>`
+  (also triggered by narrow width, so phones get the same treatment
+  regardless of their exact viewport height) shrink padding, gaps, and
+  font sizes on a short viewport — a typical laptop browser window, or a
+  phone — so the header, audio player, and the whole Answer mode panel
+  (stats, Next button, and the multiple-choice grid) fit above the fold
+  on first load instead of requiring a scroll before you can even see
+  the answer buttons. Wide, tall screens are untouched. The Agents/
+  Surfaces rotation panel below is left scrollable on purpose — that's
+  one-time setup, not the part you need visible every round. If you add
+  new controls to the header or the answer panel, add matching rules to
+  both tiers (search for "fit-to-screen scaling") or they'll fall back
+  to full size and can push the grid below the fold again on a short
+  screen.
