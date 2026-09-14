@@ -1101,6 +1101,15 @@
   // this is purely extra delivery on top of that.
   function syncReportToServer(clip, reason, auto) {
     try {
+      // Only attach a name for a deliberate, manual report - an
+      // auto-detected one (silent clip, load error) isn't something the
+      // visitor actually did, so it'd be misleading to credit/blame
+      // whoever happens to be logged in when it fires. lbGetIdentity()
+      // just returns whatever name+passphrase this browser has stored
+      // (see the leaderboard section below) - only the name is sent here,
+      // never the passphrase, and like every other client-reported value
+      // it's trusted as-is rather than cryptographically verified.
+      var id = !auto ? lbGetIdentity() : null;
       fetch("/api/report", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1109,7 +1118,8 @@
           agent: clip.agent,
           surface: clip.surface,
           reason: reason,
-          auto: !!auto
+          auto: !!auto,
+          reporter: id ? id.name : ""
         })
       }).catch(function () {});
     } catch (e) {}

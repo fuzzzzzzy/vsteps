@@ -56,21 +56,49 @@ export async function onRequestPost(context) {
   const surface = String((body && body.surface) || "").slice(0, 60);
   const reason = String((body && body.reason) || "").slice(0, 60);
   const auto = !!(body && body.auto);
+  // The reporter's leaderboard display name, sent only when they were
+  // logged in and this was a manual report (see syncReportToServer() in
+  // index.html) - trusted as-is, same as every other field here, rather
+  // than verified against the passphrase D1 checks for actual scores.
+  // 24 matches the leaderboard name's own max length (functions/api/
+  // identity.js / score.js's MAX_NAME_LEN).
+  const reporter = String((body && body.reporter) || "").trim().slice(0, 24);
 
+  // Keys here have to match the actual reason slugs the client sends -
+  // the manual ones from #reportReasons's data-reason attributes in
+  // index.html, plus the two synthetic ones addReport() passes for a
+  // clip the site flags on its own (see the "silent-auto" and
+  // "load-error" calls near the audio player code). They'd previously
+  // drifted out of sync with the chips' own data-reason values (e.g.
+  // "wrong-agent" here vs "wrong" in that old map), so every manual
+  // report except "silent" and "other" was silently falling through to
+  // its raw, unlabeled slug on Discord instead of the friendly text
+  // below - fixed by keying this off what's actually sent.
   const reasonLabels = {
     silent: "Silent / no audio",
-    wrong: "Sounds like the wrong agent",
-    cut: "Cut off / clipped short",
-    noisy: "Too noisy / hard to hear",
+    "wrong-agent": "Wrong agent tag",
+    "wrong-surface": "Wrong surface tag",
+    "bad-cut": "Bad cut / noise",
     other: "Other",
+    "silent-auto": "Silent / no audio",
+    "load-error": "Clip failed to load",
   };
   const reasonText = reasonLabels[reason] || reason || "unspecified";
+
+  let attribution;
+  if (auto) {
+    attribution = "auto-detected";
+  } else if (reporter) {
+    attribution = "reported by " + reporter;
+  } else {
+    attribution = "reported by a user";
+  }
 
   const lines = [
     "🚩 **New ValoStep clip report**",
     "`" + filename + "`",
     "Agent: " + (agent || "?") + (surface && surface !== "Unknown" ? "  ·  Surface: " + surface : ""),
-    "Reason: " + reasonText + (auto ? "  ·  auto-detected" : "  ·  reported by a user"),
+    "Reason: " + reasonText + "  ·  " + attribution,
   ];
 
   let discordResp;

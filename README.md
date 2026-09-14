@@ -323,6 +323,14 @@ The webhook URL itself never touches the browser — it's only ever read
 server-side inside the Function — so nobody viewing page source can grab
 it and spam your channel.
 
+If the visitor has joined the leaderboard (see below) when they file a
+manual report, the Discord message credits it to their display name
+("reported by \<name\>") instead of the generic "reported by a user" —
+auto-detected reports (silent/broken clips the site notices on its own)
+never get attributed this way, and the name is trusted as typed, not
+verified against their passphrase, same as every other value in the
+report.
+
 ### Abuse protection on `/api/report`
 
 `functions/api/report.js` checks that the request's `Origin` header matches
